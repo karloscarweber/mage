@@ -72,6 +72,7 @@ pub struct Lexer {
 	pub start: usize,
 	pub current: usize,
 	pub line: usize,
+	pub tokens: Vec<Token>,
 }
 
 pub fn is_alpha(c: &char) -> bool {
@@ -98,6 +99,7 @@ impl Lexer {
 			start: 0, // is current or start
 			current: 0,
 			line: 1,
+			tokens: vec![]
 		}
 	}
 	
@@ -122,14 +124,14 @@ impl Lexer {
 		self.char_at(self.current)
 	}
 	
-	pub fn peek_next(&self) -> char {
+	fn peek_next(&self) -> char {
 		if self.is_at_end() {
 			return '\0'
 		}
 		self.char_at(self.current+1)
 	}
 	
-	pub fn make_token(&self, typ: TokenType) -> Token {
+	fn make_token(&self, typ: TokenType) -> Token {
 		Token {
 			typ,
 			start: self.start,
@@ -224,10 +226,11 @@ mod tests {
 	#[test]
 	fn lexer_fn_make_token() {
 		let mut lexer = Lexer::new("let me = 'go'");
-		
-		let token = lexer.make_token(TokenType::Name);
-		assert_eq!(lexer.advance(), 'h');
-		assert!(lexer.is_at_end());
+		assert_eq!(lexer.advance(), 'l');
+		assert_eq!(lexer.advance(), 'e');
+		assert_eq!(lexer.advance(), 't');
+		lexer.tokens.push(lexer.make_token(TokenType::Name));
+		assert_eq!(lexer.tokens[0].typ, TokenType::Name);
 	}
 	
 	// #[test]
