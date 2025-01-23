@@ -4,7 +4,9 @@ use std::fmt;
 // So this is the lexer.
 // We're going to lex stuff, from a simple Grammar.
 
-// const EOF = "EOF";
+// null terminating byte
+const EOF: char = '\0';
+
 //
 // #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 // pub struct Token {
@@ -28,6 +30,7 @@ use std::fmt;
 // 	RightCurly, // }
 // 	Equals, // =
 // 	Pound, // #
+//  Newline, // \n, newlines end expressions/statements.
 // 	// keywords
 // 	Fun, // "fun", function declaration
 // 	Sum, // "sum" the stuff up.
@@ -43,7 +46,7 @@ pub enum TokenType {
 	
 	Name, String, Number,
 	
-	Fun,
+	Fun, Newline,
 	
 	Error, Eof
 }
@@ -59,9 +62,9 @@ pub struct Token {
 impl fmt::Display for Token {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self.typ {
-			TokenType::Name => write!(f, "{}", "TOKEN_Name"),
-			TokenType::String => write!(f, "{}", "TOKEN_Name"),
-			TokenType::Number => write!(f, "{}", "TOKEN_Name"),
+			TokenType::Name => write!(f, "{}", "[Name]"),
+			TokenType::String => write!(f, "{}", "[String]"),
+			TokenType::Number => write!(f, "{}", "[Name]"),
 			_ => write!(f, "{}", "well this is awkward.")
 		}
 	}
@@ -75,14 +78,14 @@ pub struct Lexer {
 	pub tokens: Vec<Token>,
 }
 
-pub fn is_alpha(c: &char) -> bool {
+pub fn is_alpha(c: char) -> bool {
 	match c {
 		'a'..='z' | 'A'..='Z' | '_' => true,
 		_ => false
 	}
 }
 
-pub fn is_digit(c: &char) -> bool {
+pub fn is_digit(c: char) -> bool {
 	match c {
 		'0'..='9' => true,
 		_ => false
@@ -107,8 +110,12 @@ impl Lexer {
 		self.current == self.source.len()
 	}
 	
+	// returns a legit character, or the EOF null terminating byte.
 	fn char_at(&self, index: usize) -> char {
-		self.source[index..=index].chars().next().unwrap()
+		if index < self.source.len() {
+			return self.source[index..=index].chars().next().unwrap()
+		}
+		EOF
 	}
 	
 	pub fn current(&self) -> char {
@@ -126,7 +133,7 @@ impl Lexer {
 	
 	fn peek_next(&self) -> char {
 		if self.is_at_end() {
-			return '\0'
+			return EOF
 		}
 		self.char_at(self.current+1)
 	}
@@ -140,13 +147,106 @@ impl Lexer {
 		}
 	}
 	
+	// pushes a token onto the stack.
+	fn push(&mut self, typ: TokenType) {
+		self.tokens.push(Token {
+			typ,
+			start: self.start,
+			length: self.current - self.start,
+			line: self.line,
+		});
+	}
+	
 	// pub fn lexeme(&mut self) -> &str {
 	// 	&self.source[self.start..=self.next]
 	// }
 	
+	fn skip_whitespace(&mut self) {
+		loop {
+			let c = self.peek();
+			match c {
+				' ' | '\r' | '\t' => {
+					self.advance();
+				},
+				'\n' => {
+					self.line += 1;
+					self.advance();
+				},
+				'/' => {
+					if self.peek_next() == '/' {
+						while self.peek() != '\n' && !self.is_at_end() {
+							self.advance();
+						}
+					} else {
+						return
+					}
+				},
+				_ => {
+					return
+				}
+			}
+		}
+	}
+	
+	fn identifier(&mut self) {
+		while is_alpha(self.peek()) || is_digit(self.peek()) { self.advance(); }
+		self.push(self.identifier_type())
+	}
+	
+	fn identifier_type(&self) -> TokenType {
+		return match self.char_at(self.start) {
+			'f' => {
+				self.check_keyword("fn", TokenType::Fun)
+			},
+			_ => TokenType::Name,
+		}
+	}
+	
+	fn check_keyword(&self, expected: &str, typ: TokenType) -> TokenType {
+		let lexeme = &self.source[self.start..=self.current];
+		if expected == lexeme {
+			return typ
+		}
+		TokenType::Name
+	}
+	
 	// scans everything and makes tokens.
 	pub fn scan(&mut self) {
 		while !self.is_at_end() {
+			self.skip_whitespace();
+			self.start = self.current;
+			
+			if self.is_at_end() { self.push(TokenType::Eof); break; }
+			
+			let c = self.advance();
+			
+			if is_alpha(c) { self.identifier(); continue; }
+			// if is_digit(c) { self.number(); continue; }
+			
+			match c {
+				'.' => self.push(TokenType::Dot),
+				'-' => self.push(TokenType::Minus),
+				'+' => self.push(TokenType::Plus),
+				'*' => self.push(TokenType::Bang),
+				'/' => self.push(TokenType::Slash),
+				'%' => self.push(TokenType::Modulo),
+				
+				'(' => self.push(TokenType::LeftParen),
+				')' => self.push(TokenType::RightParen),
+				'{' => self.push(TokenType::LeftBrace),
+				'}' => self.push(TokenType::RightBrace),
+				
+				'=' => self.push(TokenType::Equal),
+				'#' => self.push(TokenType::Hash),
+				',' => self.push(TokenType::Comma),
+				
+				// TODO: later, add function and new line support.
+				// Fun, Newline,
+				
+				// '"' => self.string(),
+				
+				_ => self.push(TokenType::Error),
+			}
 			
 		}
 		
@@ -159,15 +259,15 @@ mod tests {
 	use super::*;
 	
 	#[test]
-	fn lexer_fn_is_digit() {
+	fn lexer_fn_is_alpha() {
 		let s = "a".chars().next().unwrap();
-		assert!(is_alpha(&s));
+		assert!(is_alpha(s));
 	}
 	
 	#[test]
-	fn lexer_fn_is_alpha() {
+	fn lexer_fn_is_digit() {
 		let s = "1".chars().next().unwrap();
-		assert!(is_digit(&s));
+		assert!(is_digit(s));
 	}
 	
 	#[test]
@@ -183,13 +283,13 @@ mod tests {
 		assert_eq!(lexer.source, str);
 	}
 	
-	// #[test]
-	// fn lexer_can_return_current() {
-	// 	let mut lexer = Lexer::new("hello world");
-	// 	assert_eq!(lexer.current(), "h");
-	// 	lexer.advance();
-	// 	assert_eq!(lexer.current(), "e");
-	// }
+	#[test]
+	fn lexer_can_return_current() {
+		let mut lexer = Lexer::new("hello world");
+		assert_eq!(lexer.current(), 'h');
+		lexer.advance();
+		assert_eq!(lexer.current(), 'e');
+	}
 	
 	#[test]
 	fn lexer_can_advance() {
@@ -223,6 +323,8 @@ mod tests {
 		assert!(lexer.is_at_end());
 	}
 	
+	// test this with the print statement.
+	// cargo t make_token -q --lib -- --nocapture
 	#[test]
 	fn lexer_fn_make_token() {
 		let mut lexer = Lexer::new("let me = 'go'");
@@ -231,31 +333,58 @@ mod tests {
 		assert_eq!(lexer.advance(), 't');
 		lexer.tokens.push(lexer.make_token(TokenType::Name));
 		assert_eq!(lexer.tokens[0].typ, TokenType::Name);
+		println!("{}",lexer.tokens[0]);
 	}
 	
-	// #[test]
-	// fn lexer_can_get_lexeme() {
-	// 	let mut lexer = Lexer::new("hello loser");
-	// 	lexer.advance();
-	// 	lexer.advance();
-	// 	lexer.advance();
-	// 	lexer.advance();
-	// 	assert_eq!(lexer.lexeme(), "hello");
-	// 	lexer.advance();
-	// 	lexer.advance();
-	// 	lexer.start = lexer.next;
-	// 	lexer.advance();
-	// 	lexer.advance();
-	// 	lexer.advance();
-	// 	lexer.advance();
-	// 	assert_eq!(lexer.lexeme(), "loser");
-	// }
+	#[test]
+	fn lexer_fn_skip_whitespace() {
+		let mut lexer = Lexer::new("    hello");
+		lexer.skip_whitespace();
+		lexer.start = lexer.current;
+		assert_eq!(lexer.peek(), lexer.advance());
+		
+		let mut lexer = Lexer::new("
+   bro hello");
+		lexer.skip_whitespace();
+		lexer.start = lexer.current;
+		assert_eq!('b', lexer.advance());
+	 
+	 let mut lexer = Lexer::new("   \r\n hello");
+		lexer.skip_whitespace();
+		lexer.start = lexer.current;
+		assert_eq!('h', lexer.advance());
+	}
 	
-	// #[test]
-	// fn lexer_scan() {
-	// 	let mut lexer = Lexer::new("hello loser");
-	// 	lexer.scan();
-	// 	assert_eq!(1,1);
-	// }
+	#[test]
+	fn lexer_print_tokens() {
+		let mut lexer = Lexer::new("let me = 'go'");
+		assert_eq!(lexer.advance(), 'l');
+		assert_eq!(lexer.advance(), 'e');
+		assert_eq!(lexer.advance(), 't');
+		lexer.tokens.push(lexer.make_token(TokenType::Name));
+		println!("{}",lexer.tokens[0]);
+	}
+	
+	#[test]
+	fn lexer_scan() {
+		let mut lexer = Lexer::new("hello loser");
+		lexer.scan();
+		assert_eq!(lexer.tokens.len(),2);
+		
+		let token1 = Token {
+			typ: TokenType::Name,
+			start: 0,
+			length: 5,
+			line: 1,
+		};
+		let token2 = Token {
+			typ: TokenType::Name,
+			start: 6,
+			length: 5,
+			line: 1,
+		};
+		assert_eq!(lexer.tokens[0],token1);
+		assert_eq!(lexer.tokens[1],token2);
+	}
 	
 }
