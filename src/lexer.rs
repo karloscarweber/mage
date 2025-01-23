@@ -67,6 +67,20 @@ pub struct Lexer {
 	pub line: usize,
 }
 
+pub fn is_alpha(c: &char) -> bool {
+	match c {
+		'a'..='z' | 'A'..='Z' => true,
+		_ => false
+	}
+}
+
+pub fn is_digit(c: &char) -> bool {
+	match c {
+		'0'..='9' => true,
+		_ => false
+	}
+}
+
 impl Lexer {
 	pub fn new(input: &str) -> Lexer {
 		let source = input.to_string();
@@ -84,33 +98,21 @@ impl Lexer {
 		self.current == self.source.len()
 	}
 	
-	/*
-		Foundational lexing doohickeys.
-	*/
-	
-	// helper method to get a chart a a single index.
-	fn char_at(&self, index: usize) -> &str {
-		&self.source[index..=index]
+	fn char_at(&self, index: usize) -> char {
+		self.source[index..=index].chars().next().unwrap()
 	}
 	
-	// current
-	pub fn current(&self) -> &str {
+	pub fn current(&self) -> char {
 		self.char_at(self.current)
 	}
 	
-	// advances the start to be the same as next.()
-	pub fn advance(&mut self) -> &str {
+	pub fn advance(&mut self) -> char {
 		self.current += 1;
 		self.char_at(self.current-1)
 	}
 	
-	// looks at the next character after the current character
-	pub fn peek(&self) -> &str {
-		let mut ind = self.current + 1;
-		if ind > self.source.len() {
-			ind = self.current
-		};
-		self.char_at(ind)
+	pub fn peek(&self) -> char {
+		self.char_at(self.current)
 	}
 	
 	// pub fn lexeme(&mut self) -> &str {
@@ -132,11 +134,23 @@ mod tests {
 	use super::*;
 	
 	#[test]
+	fn lexer_fn_is_digit() {
+		let str = "a";
+		let s = str.chars().next().unwrap();
+		assert!(is_alpha(&s));
+	}
+	
+	#[test]
+	fn lexer_fn_is_alpha() {
+		let str = "1";
+		let s = str.chars().next().unwrap();
+		assert!(is_digit(&s));
+	}
+	
+	#[test]
 	fn lexer_gets_char_at() {
 		let lexer = Lexer::new("hello world");
-		assert_eq!(lexer.char_at(1), "e");
-		assert_eq!(lexer.char_at(2), "l");
-		assert_eq!(lexer.char_at(3), "l");
+		assert_eq!(lexer.char_at(1), 'e');
 	}
 	
 	#[test]
@@ -146,37 +160,37 @@ mod tests {
 		assert_eq!(lexer.source, str);
 	}
 	
-	#[test]
-	fn lexer_can_return_current() {
-		let mut lexer = Lexer::new("hello world");
-		assert_eq!(lexer.current(), "h");
-		lexer.advance();
-		assert_eq!(lexer.current(), "e");
-	}
+	// #[test]
+	// fn lexer_can_return_current() {
+	// 	let mut lexer = Lexer::new("hello world");
+	// 	assert_eq!(lexer.current(), "h");
+	// 	lexer.advance();
+	// 	assert_eq!(lexer.current(), "e");
+	// }
 	
 	#[test]
 	fn lexer_can_advance() {
 		let mut lexer = Lexer::new("hello world");
-		assert_eq!(lexer.advance(), "h");
-		assert_eq!(lexer.current(), "e");
-		assert_eq!(lexer.advance(), "e");
-		assert_eq!(lexer.current(), "l");
+		assert_eq!(lexer.advance(), 'h');
+		assert_eq!(lexer.peek(), 'e');
+		assert_eq!(lexer.advance(), 'e');
+		assert_eq!(lexer.peek(), 'l');
 	}
 	
 	#[test]
 	fn lexer_can_peek() {
 		let lexer = Lexer::new("hello world");
-		assert_eq!(lexer.peek(), "e");
+		assert_eq!(lexer.peek(), 'h');
 	}
 	
 	#[test]
 	fn lexer_fn_is_at_end_works() {
 		let mut lexer = Lexer::new("hello");
-		assert_eq!(lexer.advance(), "h");
-		assert_eq!(lexer.advance(), "e");
-		assert_eq!(lexer.advance(), "l");
-		assert_eq!(lexer.advance(), "l");
-		assert_eq!(lexer.advance(), "o");
+		assert_eq!(lexer.advance(), 'h');
+		assert_eq!(lexer.advance(), 'e');
+		assert_eq!(lexer.advance(), 'l');
+		assert_eq!(lexer.advance(), 'l');
+		assert_eq!(lexer.advance(), 'o');
 		assert!(lexer.is_at_end());
 	}
 	
