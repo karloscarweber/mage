@@ -210,6 +210,18 @@ impl Lexer {
 		TokenType::Name
 	}
 	
+	fn number(&mut self) {
+		while is_digit(self.peek()) { self.advance(); }
+		
+		if self.peek() == '.' && is_digit(self.peek_next()) {
+			self.advance();
+			
+			while is_digit(self.peek()) { self.advance(); }
+		}
+		
+		self.push(TokenType::Number)
+	}
+	
 	// scans everything and makes tokens.
 	pub fn scan(&mut self) {
 		while !self.is_at_end() {
@@ -221,7 +233,7 @@ impl Lexer {
 			let c = self.advance();
 			
 			if is_alpha(c) { self.identifier(); continue; }
-			// if is_digit(c) { self.number(); continue; }
+			if is_digit(c) { self.number(); continue; }
 			
 			match c {
 				'.' => self.push(TokenType::Dot),
@@ -385,6 +397,17 @@ mod tests {
 		};
 		assert_eq!(lexer.tokens[0],token1);
 		assert_eq!(lexer.tokens[1],token2);
+		
+		let mut lexer = Lexer::new("thing = 5 + 6");
+		lexer.scan();
+		let token1 = Token { typ: TokenType::Equal, start: 6, length: 1, line: 1, };
+		let token2 = Token { typ: TokenType::Number, start: 8, length: 1, line: 1, };
+		let token3 = Token { typ: TokenType::Plus, start: 10, length: 1, line: 1, };
+		assert_eq!(lexer.tokens[1],token1);
+		assert_eq!(lexer.tokens[2],token2);
+		assert_eq!(lexer.tokens[3],token3);
+
+		// let mut lexer = Lexer::new("fn person(name, age) {  }");
 	}
 	
 }
