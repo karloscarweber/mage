@@ -7,7 +7,6 @@ use std::fmt;
 // null terminating byte
 const EOF: char = '\0';
 
-//
 // #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 // pub struct Token {
 // 	start: i32,
@@ -32,7 +31,7 @@ const EOF: char = '\0';
 // 	Pound, // #
 //  Newline, // \n, newlines end expressions/statements.
 // 	// keywords
-// 	Fun, // "fun", function declaration
+// 	Def, // "def", function declaration
 // 	Sum, // "sum" the stuff up.
 // }
 
@@ -46,7 +45,7 @@ pub enum TokenType {
 	
 	Name, String, Number,
 	
-	Fun, Newline,
+	Def, Newline,
 	
 	Error, Eof
 }
@@ -118,10 +117,6 @@ impl Lexer {
 		EOF
 	}
 	
-	pub fn current(&self) -> char {
-		self.char_at(self.current)
-	}
-	
 	pub fn advance(&mut self) -> char {
 		self.current += 1;
 		self.char_at(self.current-1)
@@ -138,6 +133,7 @@ impl Lexer {
 		self.char_at(self.current+1)
 	}
 	
+	// TODO: only used in tests, consider removing and testing this differently.
 	fn make_token(&self, typ: TokenType) -> Token {
 		Token {
 			typ,
@@ -156,10 +152,6 @@ impl Lexer {
 			line: self.line,
 		});
 	}
-	
-	// pub fn lexeme(&mut self) -> &str {
-	// 	&self.source[self.start..=self.next]
-	// }
 	
 	fn skip_whitespace(&mut self) {
 		loop {
@@ -195,15 +187,16 @@ impl Lexer {
 	
 	fn identifier_type(&self) -> TokenType {
 		return match self.char_at(self.start) {
-			'f' => {
-				self.check_keyword("fn", TokenType::Fun)
+			'd' => {
+				self.check_keyword("def", TokenType::Def)
 			},
 			_ => TokenType::Name,
 		}
 	}
 	
 	fn check_keyword(&self, expected: &str, typ: TokenType) -> TokenType {
-		let lexeme = &self.source[self.start..=self.current];
+		let index = self.start + (expected.len() - 1);
+		let lexeme = &self.source[self.start..=index];
 		if expected == lexeme {
 			return typ
 		}
@@ -253,7 +246,7 @@ impl Lexer {
 				',' => self.push(TokenType::Comma),
 				
 				// TODO: later, add function and new line support.
-				// Fun, Newline,
+				// Def, Newline,
 				
 				// '"' => self.string(),
 				
@@ -293,14 +286,6 @@ mod tests {
 		let lexer = Lexer::new("hello world");
 		let str = String::from("hello world");
 		assert_eq!(lexer.source, str);
-	}
-	
-	#[test]
-	fn lexer_can_return_current() {
-		let mut lexer = Lexer::new("hello world");
-		assert_eq!(lexer.current(), 'h');
-		lexer.advance();
-		assert_eq!(lexer.current(), 'e');
 	}
 	
 	#[test]
@@ -381,20 +366,9 @@ mod tests {
 	fn lexer_scan() {
 		let mut lexer = Lexer::new("hello loser");
 		lexer.scan();
+		let token1 = Token { typ: TokenType::Name, start: 0, length: 5, line: 1, };
+		let token2 = Token { typ: TokenType::Name, start: 6, length: 5, line: 1,};
 		assert_eq!(lexer.tokens.len(),2);
-		
-		let token1 = Token {
-			typ: TokenType::Name,
-			start: 0,
-			length: 5,
-			line: 1,
-		};
-		let token2 = Token {
-			typ: TokenType::Name,
-			start: 6,
-			length: 5,
-			line: 1,
-		};
 		assert_eq!(lexer.tokens[0],token1);
 		assert_eq!(lexer.tokens[1],token2);
 		
@@ -406,8 +380,16 @@ mod tests {
 		assert_eq!(lexer.tokens[1],token1);
 		assert_eq!(lexer.tokens[2],token2);
 		assert_eq!(lexer.tokens[3],token3);
-
-		// let mut lexer = Lexer::new("fn person(name, age) {  }");
+		
+		let mut lexer = Lexer::new("def silly(parameter) {} ");
+		lexer.scan();
+		assert_eq!(lexer.tokens[0].typ, TokenType::Def);
+		assert_eq!(lexer.tokens[1].typ, TokenType::Name);
+		assert_eq!(lexer.tokens[2].typ, TokenType::LeftParen);
+		assert_eq!(lexer.tokens[3].typ, TokenType::Name);
+		assert_eq!(lexer.tokens[4].typ, TokenType::RightParen);
+		assert_eq!(lexer.tokens[5].typ, TokenType::LeftBrace);
+		assert_eq!(lexer.tokens[6].typ, TokenType::RightBrace);
 	}
 	
 }

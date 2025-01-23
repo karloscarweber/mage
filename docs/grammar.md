@@ -1,5 +1,5 @@
 # Grammar
-So mage is a simple stack based virtual machine language thing, for fun, based on the [numi](numi.app). For fun.
+So mage is a simple stack based virtual machine language thing, for fun, based on the [numi](numi.app). For fun. Purpose is to make a feature rich, but simple, easy to follow Lexer, Parser, and VM, and deploy this to the web to run a little math engine thing.
 
 Multi line statements or expressions are not allowed, except for function declarations, which span multiple lines.
 
@@ -24,6 +24,7 @@ factor             → primary ( ( "/" | "*" | "%" ) primary )* ;
 unary              → ( "-" ) primary | call ;
 call               → name "(" parameters ")" ;
 primary            → number | name | constant | "(" expression ")" ;
+heading            → newline "#" ()*
 ```
 
 ## Lexical Grammer
