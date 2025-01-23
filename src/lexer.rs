@@ -1,5 +1,5 @@
 // lexer.rs
-// use std::fmt;
+use std::fmt;
 
 // So this is the lexer.
 // We're going to lex stuff, from a simple Grammar.
@@ -11,14 +11,6 @@
 // 	start: i32,
 // 	length: i32,
 // 	lexeme: String,
-// }
-
-// impl fmt::Display for Token {
-// 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-// 		match self {
-// 			Token::Atom(i) => write!(f, "{}", i)
-// 		}
-// 	}
 // }
 
 //
@@ -41,23 +33,38 @@
 // 	Sum, // "sum" the stuff up.
 // }
 
-// pub struct Program {
-// 	Source(&str),
-// 	Tokens
-// }
-
-pub enum LexemeType {
-	Number,
-	String,
-	Name,
-	Operator,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TokenType {
+	Dot, Minus, Plus, Bang, Slash, Modulo,
+	
+	LeftParen, RightParen,
+	LeftBrace, RightBrace,
+	Equal, Hash, Comma,
+	
+	Name, String, Number,
+	
+	Fun,
+	
+	Error, Eof
 }
 
-
-pub struct Lexeme<'a> {
-	pub raw: &'a str,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Token {
+	pub typ: TokenType,
+	pub start: usize,
 	pub length: usize,
-	pub variant: LexemeType
+	pub line: usize,
+}
+
+impl fmt::Display for Token {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		match self.typ {
+			TokenType::Name => write!(f, "{}", "TOKEN_Name"),
+			TokenType::String => write!(f, "{}", "TOKEN_Name"),
+			TokenType::Number => write!(f, "{}", "TOKEN_Name"),
+			_ => write!(f, "{}", "well this is awkward.")
+		}
+	}
 }
 
 pub struct Lexer {
@@ -69,7 +76,7 @@ pub struct Lexer {
 
 pub fn is_alpha(c: &char) -> bool {
 	match c {
-		'a'..='z' | 'A'..='Z' => true,
+		'a'..='z' | 'A'..='Z' | '_' => true,
 		_ => false
 	}
 }
@@ -115,6 +122,22 @@ impl Lexer {
 		self.char_at(self.current)
 	}
 	
+	pub fn peek_next(&self) -> char {
+		if self.is_at_end() {
+			return '\0'
+		}
+		self.char_at(self.current+1)
+	}
+	
+	pub fn make_token(&self, typ: TokenType) -> Token {
+		Token {
+			typ,
+			start: self.start,
+			length: self.current - self.start,
+			line: self.line,
+		}
+	}
+	
 	// pub fn lexeme(&mut self) -> &str {
 	// 	&self.source[self.start..=self.next]
 	// }
@@ -135,15 +158,13 @@ mod tests {
 	
 	#[test]
 	fn lexer_fn_is_digit() {
-		let str = "a";
-		let s = str.chars().next().unwrap();
+		let s = "a".chars().next().unwrap();
 		assert!(is_alpha(&s));
 	}
 	
 	#[test]
 	fn lexer_fn_is_alpha() {
-		let str = "1";
-		let s = str.chars().next().unwrap();
+		let s = "1".chars().next().unwrap();
 		assert!(is_digit(&s));
 	}
 	
@@ -184,6 +205,12 @@ mod tests {
 	}
 	
 	#[test]
+	fn lexer_can_peek_next() {
+		let lexer = Lexer::new("hello world");
+		assert_eq!(lexer.peek_next(), 'e');
+	}
+	
+	#[test]
 	fn lexer_fn_is_at_end_works() {
 		let mut lexer = Lexer::new("hello");
 		assert_eq!(lexer.advance(), 'h');
@@ -191,6 +218,15 @@ mod tests {
 		assert_eq!(lexer.advance(), 'l');
 		assert_eq!(lexer.advance(), 'l');
 		assert_eq!(lexer.advance(), 'o');
+		assert!(lexer.is_at_end());
+	}
+	
+	#[test]
+	fn lexer_fn_make_token() {
+		let mut lexer = Lexer::new("let me = 'go'");
+		
+		let token = lexer.make_token(TokenType::Name);
+		assert_eq!(lexer.advance(), 'h');
 		assert!(lexer.is_at_end());
 	}
 	
