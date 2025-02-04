@@ -133,16 +133,6 @@ impl Lexer {
 		self.char_at(self.current+1)
 	}
 	
-	// TODO: only used in tests, consider removing and testing this differently.
-	fn make_token(&self, typ: TokenType) -> Token {
-		Token {
-			typ,
-			start: self.start,
-			length: self.current - self.start,
-			line: self.line,
-		}
-	}
-	
 	// pushes a token onto the stack.
 	fn push(&mut self, typ: TokenType) {
 		self.tokens.push(Token {
@@ -162,6 +152,7 @@ impl Lexer {
 				},
 				'\n' => {
 					self.line += 1;
+					self.push(TokenType::Newline);
 					self.advance();
 				},
 				'/' => {
@@ -328,9 +319,6 @@ mod tests {
 		assert_eq!(lexer.advance(), 'l');
 		assert_eq!(lexer.advance(), 'e');
 		assert_eq!(lexer.advance(), 't');
-		lexer.tokens.push(lexer.make_token(TokenType::Name));
-		assert_eq!(lexer.tokens[0].typ, TokenType::Name);
-		println!("{}",lexer.tokens[0]);
 	}
 	
 	#[test]
@@ -358,8 +346,6 @@ mod tests {
 		assert_eq!(lexer.advance(), 'l');
 		assert_eq!(lexer.advance(), 'e');
 		assert_eq!(lexer.advance(), 't');
-		lexer.tokens.push(lexer.make_token(TokenType::Name));
-		println!("{}",lexer.tokens[0]);
 	}
 	
 	#[test]
@@ -390,6 +376,60 @@ mod tests {
 		assert_eq!(lexer.tokens[4].typ, TokenType::RightParen);
 		assert_eq!(lexer.tokens[5].typ, TokenType::LeftBrace);
 		assert_eq!(lexer.tokens[6].typ, TokenType::RightBrace);
+		
+		// Numbers
+		let mut lexer = Lexer::new("500 + 9.99");
+		lexer.scan();
+		assert_eq!(lexer.tokens[0].typ, TokenType::Number);
+		assert_eq!(lexer.tokens[1].typ, TokenType::Plus);
+		assert_eq!(lexer.tokens[2].typ, TokenType::Number);
+		
+		// All Tokens
+		let mut lexer = Lexer::new(". - + * / % ( ) { } = # , whatever 99.99 99 def
+		error");
+		lexer.scan();
+		
+		assert_eq!(lexer.tokens[0].typ, TokenType::Dot);
+		assert_eq!(lexer.tokens[1].typ, TokenType::Minus);
+		assert_eq!(lexer.tokens[2].typ, TokenType::Plus);
+		assert_eq!(lexer.tokens[3].typ, TokenType::Bang);
+		assert_eq!(lexer.tokens[4].typ, TokenType::Slash);
+		assert_eq!(lexer.tokens[5].typ, TokenType::Modulo);
+		assert_eq!(lexer.tokens[6].typ, TokenType::LeftParen);
+		assert_eq!(lexer.tokens[7].typ, TokenType::RightParen);
+		assert_eq!(lexer.tokens[8].typ, TokenType::LeftBrace);
+		assert_eq!(lexer.tokens[9].typ, TokenType::RightBrace);
+		assert_eq!(lexer.tokens[10].typ, TokenType::Equal);
+		assert_eq!(lexer.tokens[11].typ, TokenType::Hash);
+		assert_eq!(lexer.tokens[12].typ, TokenType::Comma);
+		assert_eq!(lexer.tokens[13].typ, TokenType::Name);
+		assert_eq!(lexer.tokens[14].typ, TokenType::String);
+		assert_eq!(lexer.tokens[15].typ, TokenType::Number);
+		assert_eq!(lexer.tokens[16].typ, TokenType::Def);
+		assert_eq!(lexer.tokens[17].typ, TokenType::Newline);
+		assert_eq!(lexer.tokens[18].typ, TokenType::Error);
+		assert_eq!(lexer.tokens[19].typ, TokenType::Eof);
+	}
+	
+	#[test]
+	fn lexer_scan_typical_program() {
+		let mut lexer = Lexer::new("age = 15
+gap = 4
+age + gap");
+		lexer.scan();
+		assert_eq!(lexer.tokens[0].typ, TokenType::Name);
+		assert_eq!(lexer.tokens[1].typ, TokenType::Equal);
+		assert_eq!(lexer.tokens[2].typ, TokenType::Number);
+		assert_eq!(lexer.tokens[3].typ, TokenType::Newline);
+		
+		assert_eq!(lexer.tokens[4].typ, TokenType::Name);
+		assert_eq!(lexer.tokens[5].typ, TokenType::Equal);
+		assert_eq!(lexer.tokens[6].typ, TokenType::Number);
+		assert_eq!(lexer.tokens[7].typ, TokenType::Newline);
+		
+		assert_eq!(lexer.tokens[8].typ, TokenType::Name);
+		assert_eq!(lexer.tokens[9].typ, TokenType::Plus);
+		assert_eq!(lexer.tokens[10].typ, TokenType::Name);
 	}
 	
 }
