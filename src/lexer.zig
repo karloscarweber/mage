@@ -14,17 +14,18 @@ pub const Token = struct {
 		symbol,
 		
 		pub fn to_str(self: Type) []const u8 {
-			switch (self) {
-				Type.letter => {
-					return "letter";
-				},
-				Type.number => {
-					return "number";
-				},
-				Type.symbol => {
-					return "symbol";
-				},
-			}
+			return @tagName(self);
+			// switch (self) {
+			// 	Type.letter => {
+			// 		return "letter";
+			// 	},
+			// 	Type.number => {
+			// 		return "number";
+			// 	},
+			// 	Type.symbol => {
+			// 		return "symbol";
+			// 	},
+			// }
 		}
 	};
 	
@@ -33,25 +34,38 @@ pub const Token = struct {
 		const typ = self.type.to_str();
 		const start = self.start;
 		const line = self.line;
+		const length = self.length;
 
-		const str = try std.fmt.allocPrint(std.heap.page_allocator, "{s} [{d}:{d}]!", .{typ, line, start});
+		const str = try std.fmt.allocPrint(std.heap.page_allocator, "{s} [{d}:{d}..{d}]!", .{typ, line, start, length});
 		
 		// std.debug.print("{s}\n", .{str});
 		return str;
 	}
 };
 
+// Lexer Struct
+// pub const Lexer = struct {
+// 	source: []const u8,
+// 	start: usize = 0,
+// 	current: usize = 0,
+// 	line: usize = 1,
+// 	tokens: ArrayList(Token),
+//
+// 	pub fn init(source: []const u8) Lexer {
+// 		return .{
+// 			.source = source
+// 		};
+// 	}
+// };
+
 pub fn lex() void {
 	std.debug.print("Hello Friends.\n", .{});
 }
 
+// String comparison helper.
 pub const String = struct {
 	pub fn is_eq(str1: []const u8, str2: []const u8) bool {
-		if (std.mem.count(u8, str1, str2) > 0) {
-			return true;
-		} else {
-			return false;
-		}
+		return std.mem.eql(u8, str1, str2);
 	}
 };
 
@@ -67,6 +81,6 @@ test "does it print tokens" {
 	defer std.heap.page_allocator.free(disp);
 	std.debug.print("{s}\n", .{disp});
 	
-	try testing.expect(String.is_eq(disp, "letter [1:15]!"));
+	try testing.expect(String.is_eq(disp, "letter [1:15..2]!"));
 	
 }
