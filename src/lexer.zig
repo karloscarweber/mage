@@ -125,8 +125,8 @@ pub const Lexer = struct {
 	}
 
 	// we probably don't need this.
-	fn peek_next(self: *Self) u8 {
-		if (self.isAtEnd()) { return peek(); }
+	fn peekNext(self: *Self) u8 {
+		if (self.isAtEnd()) { return self.peek(); }
 		return self.charAt(self.current+1);
 	}
 
@@ -140,19 +140,19 @@ pub const Lexer = struct {
 			});
 	}
 	
-	fn skipWhitespace(self: *Self) void {
+	fn skipWhitespace(self: *Self) !void {
 		while (true) {
 			switch (self.peek()) {
-				' ', '\r', '\t' => { self.advance(); },
+				' ', '\r', '\t' => { _ = self.advance(); },
 				'\n' => {
 					self.line += 1;
-					self.push(Token.Type.newline);
-					self.advance();
+					try self.push(Token.Type.newline);
+					_ = self.advance();
 				},
 				'/' => {
 					if (self.peekNext() == '/') {
 						while (self.peek() != '\n' and !self.isAtEnd()) {
-							self.advance();
+							_ = self.advance();
 						}
 					} else {
 						break;
@@ -231,4 +231,12 @@ test "pushing Tokens" {
 	};
 	
 	try lexer.tokens.append(token);
+}
+
+test "skips whitespace" {
+	var lexer = try Lexer.init(testing.allocator, "  hello");
+	defer lexer.deinit();
+	
+	try lexer.skipWhitespace();
+	try expect(lexer.peek() == 'h');
 }
