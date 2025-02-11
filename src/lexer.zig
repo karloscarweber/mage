@@ -18,6 +18,7 @@ pub const Token = struct {
 		letter,
 		number,
 		symbol,
+		newline,
 		
 		pub fn to_str(self: Type) []const u8 {
 			return @tagName(self);
@@ -82,22 +83,18 @@ pub const Lexer = struct {
 	current: usize = 0,
 	line: usize = 1,
 	tokens: Tokens,
-	allocator: Allocator,
 	
 	const Self = @This();
 
 	pub fn init(allocator: Allocator, source: []const u8) !Lexer {
-		const arr = Tokens.init(allocator);
 		return .{
 			.source = source,
-			.tokens = arr,
-			.allocator = allocator,
+			.tokens = Tokens.init(allocator),
 		};
 	}
 
 	pub fn deinit(self: *Self) void {
-		const allocator = self.allocator;
-		allocator.free(self.tokens);
+		self.tokens.deinit();
 	}
 	
 	// member functions
@@ -116,41 +113,60 @@ pub const Lexer = struct {
 		return self.source[index];
 	}
 
+	// peek looks at the thing at current
 	pub fn peek(self: *Self) u8 {
-		return self.charAt(self.current+1);
+		return self.charAt(self.current);
 	}
 
+	// advances returns the current character and then advances the pointer forward.
 	pub fn advance(self: *Self) u8 {
 		defer self.current += 1;
 		return self.charAt(self.current);
 	}
+
+	// we probably don't need this.
+	fn peek_next(self: *Self) u8 {
+		if (self.isAtEnd()) { return peek(); }
+		return self.charAt(self.current+1);
+	}
+
+	// pushes a token onto the stack.
+	fn push(self: *Self, typ: Token.Type) !void {
+		try self.tokens.append(Token{
+				.type = typ,
+				.start = self.start,
+				.length = self.current - self.start,
+				.line = self.line,
+			});
+	}
 	
-	//
-	// fn peek_next(&self) -> char {
-	// 	if self.is_at_end() {
-	// 		return EOF
-	// 	}
-	// 	self.char_at(self.current+1)
-	// }
-	//
-	// // pushes a token onto the stack.
-	// fn push(&mut self, typ: TokenType) {
-	// 	self.tokens.push(Token {
-	// 		typ,
-	// 		start: self.start,
-	// 		length: self.current - self.start,
-	// 		line: self.line,
-	// 	});
-	// }
+	fn skipWhitespace(self: *Self) void {
+		while (true) {
+			switch (self.peek()) {
+				' ', '\r', '\t' => { self.advance(); },
+				'\n' => {
+					self.line += 1;
+					self.push(Token.Type.newline);
+					self.advance();
+				},
+				'/' => {
+					if (self.peekNext() == '/') {
+						while (self.peek() != '\n' and !self.isAtEnd()) {
+							self.advance();
+						}
+					} else {
+						break;
+					}
+				},
+				else => break,
+			}
+		}
+	}
 	
 };
 
 pub fn lex() void {
 	std.debug.print("lexing.....\n");
-	
-	
-	
-	
 }
 
 // String comparison helper.
@@ -162,7 +178,6 @@ pub const String = struct {
 
 // TESTS
 const expect = testing.expect;
-
 
 // returns some tokens for tests.
 fn ts_some_tokens() Token {
@@ -187,28 +202,33 @@ test "does it print tokens" {
 
 const small_source_code = "hello friends! This is some source code";
 
-test "does the lexer get started with some source" {
-	return error.SkipZigTest;
-	
-	// var lexer = try Lexer.init(testing.allocator, small_source_code);
-	// lexer.lex();
-	// defer lexer.deinit();
-	
-	// std.debug.print("{s}\n", .{lexer.source});
-	
-	// lexer.lex();
-	// _ = lexer;
-}
-
 test "does the lexer thing advance as we expect, and does isAtEnd work like we want?" {
 	var lexer = try Lexer.init(testing.allocator, small_source_code);
 	try expect(!lexer.isAtEnd());
 	try expect(lexer.charAt(0) == 'h');
 	try expect(lexer.charAt(1) == 'e');
 	try expect(lexer.charAt(2) == 'l');
-	try expect(lexer.peek() == 'e');
-	
+	try expect(lexer.peek() == 'h');
 	try expect(lexer.advance() == 'h');
 	try expect(lexer.advance() == 'e');
 	try expect(lexer.advance() == 'l');
+	try expect(lexer.peek() == 'l');
+	try expect(!lexer.isAtEnd());
+}
+
+test "pushing Tokens" {
+	var lexer = try Lexer.init(testing.allocator, small_source_code);
+	// we need to deinit this lexer at the end or we'll leak memory.
+	// I suspect that not using the testing.allocator doesn't
+	// catch the leaked memory.
+	defer lexer.deinit();
+	
+	const token = Token{
+		.type = Token.Type.letter,
+		.start = 0,
+		.length = 0,
+		.line = 1,
+	};
+	
+	try lexer.tokens.append(token);
 }
