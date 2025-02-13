@@ -97,13 +97,6 @@ pub const Lexer = struct {
 		self.tokens.deinit();
 	}
 	
-	// member functions
-	// pub fn lex(self: *Self) void {
-	// 	if (self.tokens.len > 0) {
-	// 		std.debug.print("What up!\n");
-	// 	}
-	// }
-	
 	pub fn isAtEnd(self: *Self) bool {
 		return self.current == self.source.len;
 	}
@@ -140,15 +133,30 @@ pub const Lexer = struct {
 			});
 	}
 	
+	// adds a new line.
+	// it's special because newlines are whitespace, but they are also importantish.
+	// So skipWhitespace will mark a new line as it rolls right on through, but also
+	// advance the ticker thingy.
+	//
+	fn pushNewline(self: *Self) !void {
+		self.line += 1;
+		try self.tokens.append(Token{
+			.type = Token.Type.newline,
+			.start = self.current - 1,
+			.length = 1,
+			.line = self.line,
+		});
+		_ = self.advance();
+	}
+	
 	fn skipWhitespace(self: *Self) !void {
 		while (true) {
 			switch (self.peek()) {
 				' ', '\r', '\t' => { _ = self.advance(); },
-				'\n' => {
-					self.line += 1;
-					try self.push(Token.Type.newline);
-					_ = self.advance();
-				},
+				'\n' => { try self.pushNewline(); },
+				
+				// comments reach the end of the line, so.., if we have a slash,
+				// we roll over until the end of the line if we see another slash.
 				'/' => {
 					if (self.peekNext() == '/') {
 						while (self.peek() != '\n' and !self.isAtEnd()) {
@@ -163,11 +171,11 @@ pub const Lexer = struct {
 		}
 	}
 	
+	pub fn scan(self: *Self) void {
+		std.debug.print("lexing.....\n");
+	}
+	
 };
-
-pub fn lex() void {
-	std.debug.print("lexing.....\n");
-}
 
 // String comparison helper.
 pub const String = struct {
@@ -200,14 +208,14 @@ test "does it print tokens" {
 	try expect(String.is_eq(disp, "letter [1:15..2]!"));
 }
 
-const small_source_code = "hello friends! This is some source code";
+const small_source_code = "hello friends!";
 
-test "does the lexer thing advance as we expect, and does isAtEnd work like we want?" {
+// Test Lexer fucntiosn
+// Lexer.isAtEnd()
+test "Lexer functions" {
 	var lexer = try Lexer.init(testing.allocator, small_source_code);
 	try expect(!lexer.isAtEnd());
 	try expect(lexer.charAt(0) == 'h');
-	try expect(lexer.charAt(1) == 'e');
-	try expect(lexer.charAt(2) == 'l');
 	try expect(lexer.peek() == 'h');
 	try expect(lexer.advance() == 'h');
 	try expect(lexer.advance() == 'e');
@@ -216,27 +224,24 @@ test "does the lexer thing advance as we expect, and does isAtEnd work like we w
 	try expect(!lexer.isAtEnd());
 }
 
-test "pushing Tokens" {
-	var lexer = try Lexer.init(testing.allocator, small_source_code);
-	// we need to deinit this lexer at the end or we'll leak memory.
-	// I suspect that not using the testing.allocator doesn't
-	// catch the leaked memory.
-	defer lexer.deinit();
-	
-	const token = Token{
-		.type = Token.Type.letter,
-		.start = 0,
-		.length = 0,
-		.line = 1,
-	};
-	
-	try lexer.tokens.append(token);
-}
-
 test "skips whitespace" {
 	var lexer = try Lexer.init(testing.allocator, "  hello");
 	defer lexer.deinit();
 	
 	try lexer.skipWhitespace();
 	try expect(lexer.peek() == 'h');
+}
+
+test "pushing Tokens" {
+	var lexer = try Lexer.init(testing.allocator, small_source_code);
+	// we need to deinit this lexer at the end or we'll leak memory.
+	// I suspect that not using the testing.allocator doesn't
+	// catch the leaked memory.
+	defer lexer.deinit();
+	try lexer.tokens.append(Token{
+		.type = Token.Type.letter,
+		.start = 0,
+		.length = 0,
+		.line = 1,
+	});
 }
