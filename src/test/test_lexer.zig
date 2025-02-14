@@ -79,5 +79,15 @@ test "pushing Tokens" {
 }
 
 test "registers newlines" {
-	
+	var lexer = try Lexer.init(testing.allocator, small_source_code);
+	// we need to deinit this lexer at the end or we'll leak memory.
+	// I suspect that not using the testing.allocator doesn't
+	// catch the leaked memory.
+	defer lexer.deinit();
+	try lexer.tokens.append(Token{
+		.type = Token.Type.letter,
+		.start = 0,
+		.length = 0,
+		.line = 1,
+	});
 }

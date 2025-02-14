@@ -1,4 +1,5 @@
 const std = @import("std");
+const Char = @import("root");
 const builtin = @import("builtin");
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
