@@ -15,4 +15,4 @@ Run `zig build`.
 Run `zig run src/main.zig`.
 
 ## Running the tests
-Run `zig build test` to run the tests. Add a file to the tests by importing it into `tests.zig`. Run an individual file: `zig test src/filename.zig`.
+Run `zig build tests` to run the tests. Add a file to the tests by importing it into `tests.zig`. Run an individual file: `zig test src/filename.zig`.

@@ -10,7 +10,7 @@ pub const Char = struct {
 	
 	pub fn isAlphabetic(c: u8) bool {
 		return switch (c) {
-			'A'...'Z', 'a'...'z', '_' => true,
+			'A'...'Z', 'a'...'z' => true,
 			else => false,
 		};
 	}
@@ -18,6 +18,13 @@ pub const Char = struct {
 	pub fn isDigit(c: u8) bool {
 		return switch (c) {
 			'0'...'9' => true,
+			else => false,
+		};
+	}
+	
+	pub fn isHex(c: u8) bool {
+		return switch (c) {
+			'0'...'9', 'A'...'F', 'a'...'F', '_' => true,
 			else => false,
 		};
 	}
@@ -63,6 +70,15 @@ pub const String = struct {
 	pub fn isAlphanumeric(str: []const u8) bool {
 		for (str) |character| {
 			if (!Char.isAlphanumeric(character)) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	pub fn isName(str: []const u8) bool {
+		for (str) |character| {
+			if (!Char.isAlphanumeric(character) and character != '_') {
 				return false;
 			}
 		}

@@ -1,4 +1,4 @@
-// Test the root thing
+ // Test the root thing
 
 const root = @import("../root.zig");
 const Char = root.Char;
@@ -23,7 +23,7 @@ test "String helpers work" {
 	const slicer = "jork_4794348";
 	try expect(!String.isAlphabetic(slicer));
 	
-	try expect(String.isAlphanumeric("jork_"));
+	try expect(String.isName("jork_"));
 	
 	const slicer3 = "jork _4794348";
 	try expect(!String.isAlphanumeric(slicer3));

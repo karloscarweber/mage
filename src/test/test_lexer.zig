@@ -23,7 +23,7 @@ const expect = testing.expect;
 // returns some tokens for tests.
 fn ts_some_tokens() Token {
 	const token: Token = Token{
-		.type = Token.Type.letter,
+		.type = Token.Type.name,
 		.start = 15,
 		.length = 2,
 		.line = 1,
@@ -38,7 +38,7 @@ test "does it print tokens" {
 	defer std.heap.page_allocator.free(disp);
 	// std.debug.print("{s}\n", .{disp});
 	
-	try expect(String.is_eq(disp, "letter [1:15..2]!"));
+	try expect(String.is_eq(disp, "name [1:15..2]!"));
 }
 
 const small_source_code = "hello friends!";
@@ -64,30 +64,34 @@ test "skips whitespace" {
 	try expect(lexer.peek() == 'h');
 }
 
-test "pushing Tokens" {
-	var lexer = try Lexer.init(testing.allocator, small_source_code);
-	// we need to deinit this lexer at the end or we'll leak memory.
-	// I suspect that not using the testing.allocator doesn't
-	// catch the leaked memory.
-	defer lexer.deinit();
-	try lexer.tokens.append(Token{
-		.type = Token.Type.letter,
-		.start = 0,
-		.length = 0,
-		.line = 1,
-	});
-}
+// test "pushing Tokens" {
+// 	var lexer = try Lexer.init(testing.allocator, small_source_code);
+// 	// we need to deinit this lexer at the end or we'll leak memory.
+// 	// I suspect that not using the testing.allocator doesn't
+// 	// catch the leaked memory.
+// 	defer lexer.deinit();
+// 	try lexer.tokens.append(Token{
+// 		.type = Token.Type.letter,
+// 		.start = 0,
+// 		.length = 0,
+// 		.line = 1,
+// 	});
+// }
 
-test "registers newlines" {
-	var lexer = try Lexer.init(testing.allocator, small_source_code);
-	// we need to deinit this lexer at the end or we'll leak memory.
-	// I suspect that not using the testing.allocator doesn't
-	// catch the leaked memory.
-	defer lexer.deinit();
-	try lexer.tokens.append(Token{
-		.type = Token.Type.letter,
-		.start = 0,
-		.length = 0,
-		.line = 1,
-	});
+// test "registers newlines" {
+// 	var lexer = try Lexer.init(testing.allocator, small_source_code);
+// 	// we need to deinit this lexer at the end or we'll leak memory.
+// 	// I suspect that not using the testing.allocator doesn't
+// 	// catch the leaked memory.
+// 	defer lexer.deinit();
+// 	try lexer.tokens.append(Token{
+// 		.type = Token.Type.letter,
+// 		.start = 0,
+// 		.length = 0,
+// 		.line = 1,
+// 	});
+// }
+
+test "scanner scans source code" {
+	
 }

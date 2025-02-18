@@ -16,10 +16,12 @@ pub const Token = struct {
 	line: usize,
 	
 	pub const Type = enum {
-		letter,
+		name,
 		number,
 		symbol,
 		newline,
+		keyword,
+		comment,
 		
 		pub fn to_str(self: Type) []const u8 {
 			return @tagName(self);
@@ -40,50 +42,15 @@ pub const Token = struct {
 };
 const Tokens = ArrayList(Token);
 
-pub fn isAlphabetic(c: u8) bool {
-	return switch (c) {
-		'A'...'Z', 'a'...'z', '_' => true,
-		else => false,
-	};
-}
-
-pub fn isDigit(c: u8) bool {
-	return switch (c) {
-		'0'...'9' => true,
-		else => false,
-	};
-}
-
-pub fn isAlphanumeric(c: u8) bool {
-	return switch (c) {
-		'0'...'9', 'A'...'Z', 'a'...'z' => true,
-		else => false,
-	};
-}
-
-pub fn isWhitespace(c: u8) bool {
-	return switch (c) {
-		' ', '\t', '\r' => true,
-		else => false,
-	};
-}
-
-pub fn isNewline(c: u8) bool {
-	return switch (c) {
-		'\n' => true,
-		else => false,
-	};
-}
-
 // Lexer Struct
 // it manages the state of the Lexer as it runs through source code before
 // passing the stuff off to the parser.
 pub const Lexer = struct {
-	source: []const u8,
 	start: usize = 0,
 	current: usize = 0,
 	line: usize = 1,
 	tokens: Tokens,
+	source: []const u8,
 	
 	const Self = @This();
 
@@ -118,7 +85,6 @@ pub const Lexer = struct {
 		return self.charAt(self.current);
 	}
 
-	// we probably don't need this.
 	pub fn peekNext(self: *Self) u8 {
 		if (self.isAtEnd()) { return self.peek(); }
 		return self.charAt(self.current+1);
@@ -158,13 +124,9 @@ pub const Lexer = struct {
 				
 				// comments reach the end of the line, so.., if we have a slash,
 				// we roll over until the end of the line if we see another slash.
-				'/' => {
-					if (self.peekNext() == '/') {
-						while (self.peek() != '\n' and !self.isAtEnd()) {
-							_ = self.advance();
-						}
-					} else {
-						break;
+				'#' => {
+					while (self.peek() != '\n' and !self.isAtEnd()) {
+						_ = self.advance();
 					}
 				},
 				else => break,
@@ -172,8 +134,55 @@ pub const Lexer = struct {
 		}
 	}
 	
-	// pub fn scan(self: *Self) void {
-	// 	std.debug.print("lexing.....\n");
-	// }
+	pub fn name(self: *Self) void {
+		while (Char.isAlphabetic(self.peek()) or Char.isDigit(self.peek()) or '_' == self.peek()) {
+			_ = self.advance();
+		}
+		
+		// do this later to check the names and stuff.
+		self.push(Token.Type.name);
+	}
+	
+	// parses a number
+	pub fn number(self: *Self, character: u8) void {
+		
+		if (self.peek() == 'x' and character == 0) {
+			// Hex number
+			_ = self.advance(); // grabs the x
+			while (Char.isHex(self.peek())) { _ = self.advance(); }
+			self.push(Token.Type.number);
+		} else {
+			// Not Hex Number
+			while (self.peek() == '.' or self.peek() == '_' or Char.isDigit(self.peek())) {
+				_ = self.advance();
+			}
+			self.push(Token.Type.number);
+		}
+	}
+	
+	pub fn scan(self: *Self) void {
+		std.debug.print("lexing.....\n");
+		while (!self.isAtEnd()) {
+			self.skipWhitespace();
+			self.start = self.current;
+			
+			if (self.isAtEnd()) { break; }
+			
+			const c = self.advance();
+			
+			if (self.isAlpha(c)) { self.name(); continue; }
+			if (self.isDigit(c)) { self.number(c); continue; }
+			
+			switch (c) {
+				'(', ')', ')', '{', '}', '[', ']',
+				'-','+','*','/','%','=',',', => {
+					self.push(Token.Type.symbol);
+				},
+				else => {
+					continue;
+				}
+			}
+		}
+	}
 	
 };

@@ -172,7 +172,9 @@ impl Lexer {
 	}
 	
 	fn identifier(&mut self) {
-		while is_alpha(self.peek()) || is_digit(self.peek()) { self.advance(); }
+		while is_alpha(self.peek()) || is_digit(self.peek()) {
+			self.advance();
+		}
 		self.push(self.identifier_type())
 	}
 	
