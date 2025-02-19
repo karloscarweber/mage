@@ -47,6 +47,7 @@ const small_source_code = "hello friends!";
 // Lexer.isAtEnd()
 test "Lexer functions" {
 	var lexer = try Lexer.init(testing.allocator, small_source_code);
+	defer lexer.deinit();
 	try expect(!lexer.isAtEnd());
 	try expect(lexer.peek() == 'h');
 	try expect(lexer.advance() == 'h');
@@ -93,5 +94,14 @@ test "skips whitespace" {
 // }
 
 test "scanner scans source code" {
-	
+	var lexer = try Lexer.init(testing.allocator, small_source_code);
+	defer lexer.deinit();
+	try lexer.scan();
+	// try expect(!lexer.isAtEnd());
+	// try expect(lexer.peek() == 'h');
+	// try expect(lexer.advance() == 'h');
+	// try expect(lexer.advance() == 'e');
+	// try expect(lexer.advance() == 'l');
+	// try expect(lexer.peek() == 'l');
+	// try expect(!lexer.isAtEnd());
 }

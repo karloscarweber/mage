@@ -24,7 +24,7 @@ pub const Char = struct {
 	
 	pub fn isHex(c: u8) bool {
 		return switch (c) {
-			'0'...'9', 'A'...'F', 'a'...'F', '_' => true,
+			'0'...'9', 'A'...'F', 'a'...'f', '_' => true,
 			else => false,
 		};
 	}

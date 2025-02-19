@@ -1,5 +1,7 @@
 const std = @import("std");
-const Char = @import("root");
+const root = @import("root.zig");
+const Char = root.Char;
+const String = root.String;
 const builtin = @import("builtin");
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
@@ -134,49 +136,48 @@ pub const Lexer = struct {
 		}
 	}
 	
-	pub fn name(self: *Self) void {
+	pub fn name(self: *Self) !void {
 		while (Char.isAlphabetic(self.peek()) or Char.isDigit(self.peek()) or '_' == self.peek()) {
 			_ = self.advance();
 		}
 		
 		// do this later to check the names and stuff.
-		self.push(Token.Type.name);
+		try self.push(Token.Type.name);
 	}
 	
 	// parses a number
-	pub fn number(self: *Self, character: u8) void {
+	pub fn number(self: *Self, character: u8) !void {
 		
 		if (self.peek() == 'x' and character == 0) {
 			// Hex number
 			_ = self.advance(); // grabs the x
 			while (Char.isHex(self.peek())) { _ = self.advance(); }
-			self.push(Token.Type.number);
 		} else {
 			// Not Hex Number
 			while (self.peek() == '.' or self.peek() == '_' or Char.isDigit(self.peek())) {
 				_ = self.advance();
 			}
-			self.push(Token.Type.number);
 		}
+		try self.push(Token.Type.number);
 	}
 	
-	pub fn scan(self: *Self) void {
-		std.debug.print("lexing.....\n");
+	pub fn scan(self: *Self) !void {
+		// std.debug.print("lexing.....\n");
 		while (!self.isAtEnd()) {
-			self.skipWhitespace();
+			try self.skipWhitespace();
 			self.start = self.current;
 			
 			if (self.isAtEnd()) { break; }
 			
 			const c = self.advance();
 			
-			if (self.isAlpha(c)) { self.name(); continue; }
-			if (self.isDigit(c)) { self.number(c); continue; }
+			if (Char.isAlphabetic(c)) { try self.name(); continue; }
+			if (Char.isDigit(c)) { try self.number(c); continue; }
 			
 			switch (c) {
-				'(', ')', ')', '{', '}', '[', ']',
+				'(',')','{','}','[',']',
 				'-','+','*','/','%','=',',', => {
-					self.push(Token.Type.symbol);
+					try self.push(Token.Type.symbol);
 				},
 				else => {
 					continue;
