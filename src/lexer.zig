@@ -1,4 +1,6 @@
 const std = @import("std");
+const bufPrint = std.fmt.bufPrint;
+const mem = std.mem;
 const root = @import("root.zig");
 const Char = root.Char;
 const String = root.String;
@@ -31,14 +33,11 @@ pub const Token = struct {
 	};
 	
 	// Displays a string.
-	pub fn to_str(self: *Token) ![]const u8 {
+	pub fn to_str(self: *const Token) ![]const u8 {
 		const typ = self.type.to_str();
-		const start = self.start;
-		const line = self.line;
-		const length = self.length;
-
-		const str = try std.fmt.allocPrint(std.heap.page_allocator, "{s} [{d}:{d}..{d}]!", .{typ, line, start, length});
-		
+		var buffer: [12]u8 = undefined;
+		const thing = try bufPrint(&buffer, "{s: <12}", .{typ});
+		const str = try std.fmt.allocPrint(std.heap.page_allocator, "{s} [{d}:{d}..{d}]", .{thing, self.line, self.start, self.length});
 		return str;
 	}
 };
@@ -68,7 +67,7 @@ pub const Lexer = struct {
 	}
 	
 	pub fn isAtEnd(self: *Self) bool {
-		return self.current == self.source.len;
+		return self.current == self.source.len-1;
 	}
 	
 	// returns a legit character, or the EOF null terminating byte.
@@ -108,13 +107,13 @@ pub const Lexer = struct {
 	// advance the ticker thingy.
 	//
 	pub fn pushNewline(self: *Self) !void {
-		self.line += 1;
 		try self.tokens.append(Token{
 			.type = Token.Type.newline,
 			.start = self.current - 1,
 			.length = 1,
 			.line = self.line,
 		});
+		self.line += 1;
 		_ = self.advance();
 	}
 	
@@ -137,7 +136,12 @@ pub const Lexer = struct {
 	}
 	
 	pub fn name(self: *Self) !void {
-		while (Char.isAlphabetic(self.peek()) or Char.isDigit(self.peek()) or '_' == self.peek()) {
+		
+		if (self.isAtEnd()) { return; }
+		while (Char.isAlphabetic(self.peek())
+		or Char.isDigit(self.peek())
+		or '_' == self.peek()) {
+			if (self.isAtEnd()) { break; }
 			_ = self.advance();
 		}
 		

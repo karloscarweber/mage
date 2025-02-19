@@ -36,12 +36,17 @@ test "does it print tokens" {
 	
 	const disp = try token.to_str();
 	defer std.heap.page_allocator.free(disp);
-	// std.debug.print("{s}\n", .{disp});
 	
-	try expect(String.is_eq(disp, "name [1:15..2]!"));
+	try expect(String.is_eq(disp, "name         [1:15..2]"));
 }
 
 const small_source_code = "hello friends!";
+
+const big_source_code =
+\\"hello friends
+\\15 + 20
+\\99.999 + 0x0FF0
+;
 
 // Test Lexer fucntiosn
 // Lexer.isAtEnd()
@@ -93,10 +98,24 @@ test "skips whitespace" {
 // 	});
 // }
 
+fn debugLexer(lexer: *Lexer) !void {
+	for (lexer.tokens.items) |item| {
+		const thing = try item.to_str();
+		std.debug.print("{s}\n", .{thing});
+	}
+}
+
 test "scanner scans source code" {
 	var lexer = try Lexer.init(testing.allocator, small_source_code);
 	defer lexer.deinit();
 	try lexer.scan();
+	// try debugLexer(&lexer);
+	
+	var bigLexer = try Lexer.init(testing.allocator, big_source_code);
+	defer bigLexer.deinit();
+	try bigLexer.scan();
+	try debugLexer(&bigLexer);
+	
 	// try expect(!lexer.isAtEnd());
 	// try expect(lexer.peek() == 'h');
 	// try expect(lexer.advance() == 'h');
