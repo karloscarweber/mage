@@ -1,5 +1,6 @@
 const std = @import("std");
-const testing = std.testing;
+const assert = std.debug.assert;
+const builtin = @import("builtin");
 
 // I'm using Root as a utility storage center.
 // I'm using structs to namespace functions that are
@@ -24,7 +25,8 @@ pub const Char = struct {
 	
 	pub fn isHex(c: u8) bool {
 		return switch (c) {
-			'0'...'9', 'A'...'F', 'a'...'f', '_' => true,
+			// '0'...'9', 'A'...'F', 'a'...'f', '_' => true,
+			'0'...'9', 'A'...'F' => true,
 			else => false,
 		};
 	}

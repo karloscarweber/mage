@@ -11,7 +11,7 @@ const testing = std.testing;
 const print = std.debug.print;
 
 // var gpa = std.heap.GemeralPurposeAllocator(.{}){};
-// const allocator = gpa.allocator();
+// const allogator = gpa.allocator();
 
 pub const Token = struct {
 	type: Type,
@@ -32,12 +32,23 @@ pub const Token = struct {
 		}
 	};
 	
+	pub fn literal(self: *const Token, source: *[]const u8) ![]const u8 {
+		const substr = source.*[self.start..self.start + self.length];
+		if (self.type == Token.Type.newline) {
+			const lit = "\\n";
+			return lit;
+		}
+		return substr;
+	}
+	
 	// Displays a string.
-	pub fn to_str(self: *const Token) ![]const u8 {
+	pub fn to_str(self: *const Token, source: *[]const u8) ![]const u8 {
+		const lit = try self.literal(source);
+		
 		const typ = self.type.to_str();
 		var buffer: [12]u8 = undefined;
 		const thing = try bufPrint(&buffer, "{s: <12}", .{typ});
-		const str = try std.fmt.allocPrint(std.heap.page_allocator, "{s} [{d}:{d}..{d}]", .{thing, self.line, self.start, self.length});
+		const str = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {d}:[{d}..{d}] - {s}", .{thing, self.line, self.start, self.length, lit});
 		return str;
 	}
 };
@@ -75,7 +86,7 @@ pub const Lexer = struct {
 		return self.source[index];
 	}
 
-	// peek looks at the thing at current
+	// peek looks at the char at current
 	pub fn peek(self: *Self) u8 {
 		return self.charAt(self.current);
 	}
@@ -109,7 +120,7 @@ pub const Lexer = struct {
 	pub fn pushNewline(self: *Self) !void {
 		try self.tokens.append(Token{
 			.type = Token.Type.newline,
-			.start = self.current - 1,
+			.start = self.current,
 			.length = 1,
 			.line = self.line,
 		});
@@ -152,10 +163,10 @@ pub const Lexer = struct {
 	// parses a number
 	pub fn number(self: *Self, character: u8) !void {
 		
-		if (self.peek() == 'x' and character == 0) {
+		if (self.peek() == 'x' and character == '0') {
 			// Hex number
 			_ = self.advance(); // grabs the x
-			while (Char.isHex(self.peek())) { _ = self.advance(); }
+			while (Char.isHex(self.peek()) and !self.isAtEnd()) { _ = self.advance(); }
 		} else {
 			// Not Hex Number
 			while (self.peek() == '.' or self.peek() == '_' or Char.isDigit(self.peek())) {
