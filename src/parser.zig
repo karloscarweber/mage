@@ -3,7 +3,6 @@ const lex = @import("lexer.zig");
 const builtin = @import("builtin");
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
-
 const Lexer = lex.Lexer;
 const Tokens = Lexer.Tokens;
 
@@ -18,7 +17,7 @@ pub const Node = enum {
 	op_return,
 	op_range,
 
-	pub fn to_str(self: Type) []const u8 {
+	pub fn to_str(self: Node) []const u8 {
 		return @tagName(self);
 	}
 };
@@ -32,13 +31,19 @@ pub const Parser = struct {
 	source: []const u8,
 	nodes: Nodes,
 
+	// panic mode
+	panic: bool = false,
+	current: usize,
+
+
 	const Self = @This();
 
 	pub fn init(allocator: Allocator, source: []const u8) !Parser {
-		var lexer = try Lexer.init(allocator, source);
+		const lexer = try Lexer.init(allocator, source);
 		return .{
-			.lexer = lexer
+			.lexer = lexer,
 			.source = source,
+			.nodes = Nodes.init(allocator),
 		};
 	}
 
@@ -48,10 +53,23 @@ pub const Parser = struct {
 
 	// helper access methods
 	pub fn tokens(self: *Self) *Tokens {
-		&self.lexer.tokens;
+		return &self.lexer.tokens;
 	}
 
-}
+	pub fn isAtEnd(self: *Self) bool {
+		return self.current == lexer.tokens.len-1;
+	}
+
+	pub fn parse(self: *Self) bool {
+		_ = self;
+		return true;
+
+		while (!self.isAtEnd()) {
+
+		}
+	}
+
+};
 
 // # AST
 // The AST separates between scope, names, files, etc...

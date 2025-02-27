@@ -31,15 +31,6 @@ fn ts_some_tokens() Token {
 	return token;
 }
 
-// test "does it print tokens" {
-	// var token = ts_some_tokens();
-	
-	// const disp = try token.to_str();
-	// defer std.heap.page_allocator.free(disp);
-	//
-	// try expect(String.is_eq(disp, "name         [1:15..2]"));
-// }
-
 const small_source_code = "hello friends!";
 
 // Test Lexer fucntiosn
@@ -59,7 +50,7 @@ test "Lexer functions" {
 test "skips whitespace" {
 	var lexer = try Lexer.init(testing.allocator, "  hello");
 	defer lexer.deinit();
-	
+
 	try lexer.skipWhitespace();
 	try expect(lexer.peek() == 'h');
 }
@@ -82,13 +73,13 @@ test "scanner scans source code" {
 	defer lexer.deinit();
 	try lexer.scan();
 	// try debugLexer(&lexer);
-	
+
 	var bigLexer = try Lexer.init(testing.allocator, big_source_code);
 	defer bigLexer.deinit();
 	try bigLexer.scan();
-	
-	try debugLexer(&bigLexer);
-	
+
+	// try debugLexer(&bigLexer);
+
 	// try expect(!lexer.isAtEnd());
 	// try expect(lexer.peek() == 'h');
 	// try expect(lexer.advance() == 'h');
