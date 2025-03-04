@@ -18,20 +18,26 @@ pub const Token = struct {
 	start: usize,
 	length: usize,
 	line: usize,
-	
+
 	pub const Type = enum {
+		leftParen,
+		rightParen,
+		leftBrace,
+		rightBrace,
+		leftBrackert,
+		rightBrackert,
 		name,
 		number,
 		symbol,
 		newline,
 		keyword,
 		comment,
-		
+
 		pub fn to_str(self: Type) []const u8 {
 			return @tagName(self);
 		}
 	};
-	
+
 	pub fn literal(self: *const Token, source: *[]const u8) ![]const u8 {
 		const substr = source.*[self.start..self.start + self.length];
 		if (self.type == Token.Type.newline) {
@@ -40,11 +46,11 @@ pub const Token = struct {
 		}
 		return substr;
 	}
-	
+
 	// Displays a string.
 	pub fn to_str(self: *const Token, source: *[]const u8) ![]const u8 {
 		const lit = try self.literal(source);
-		
+
 		const typ = self.type.to_str();
 		var buffer: [12]u8 = undefined;
 		const thing = try bufPrint(&buffer, "{s: <12}", .{typ});
@@ -52,7 +58,8 @@ pub const Token = struct {
 		return str;
 	}
 };
-const Tokens = ArrayList(Token);
+
+pub const Tokens = ArrayList(Token);
 
 // Lexer Struct
 // it manages the state of the Lexer as it runs through source code before
@@ -63,7 +70,7 @@ pub const Lexer = struct {
 	line: usize = 1,
 	tokens: Tokens,
 	source: []const u8,
-	
+
 	const Self = @This();
 
 	pub fn init(allocator: Allocator, source: []const u8) !Lexer {
@@ -76,11 +83,11 @@ pub const Lexer = struct {
 	pub fn deinit(self: *Self) void {
 		self.tokens.deinit();
 	}
-	
+
 	pub fn isAtEnd(self: *Self) bool {
 		return self.current == self.source.len-1;
 	}
-	
+
 	// returns a legit character, or the EOF null terminating byte.
 	fn charAt(self: *Self, index: usize) u8 {
 		return self.source[index];
@@ -103,15 +110,19 @@ pub const Lexer = struct {
 	}
 
 	// pushes a token onto the stack.
-	pub fn push(self: *Self, typ: Token.Type) !void {
-		try self.tokens.append(Token{
-				.type = typ,
-				.start = self.start,
-				.length = self.current - self.start,
-				.line = self.line,
-			});
+	pub fn push(self: *Self, typ: Token.Type) void {
+		self.tokens.append(Token{
+			.type = typ,
+			.start = self.start,
+			.length = self.current - self.start,
+			.line = self.line,
+		}) catch {};
+		// notice above we're not using try to call the push, instead
+		// we're just catching the possible error and ignoring it.
+		// In this part of the code, an error would be extremely unlikely.
+		// If this breaks later we'll fix it.
 	}
-	
+
 	// adds a new line.
 	// it's special because newlines are whitespace, but they are also importantish.
 	// So skipWhitespace will mark a new line as it rolls right on through, but also
@@ -127,13 +138,13 @@ pub const Lexer = struct {
 		self.line += 1;
 		_ = self.advance();
 	}
-	
+
 	pub fn skipWhitespace(self: *Self) !void {
 		while (true) {
 			switch (self.peek()) {
 				' ', '\r', '\t' => { _ = self.advance(); },
 				'\n' => { try self.pushNewline(); },
-				
+
 				// comments reach the end of the line, so.., if we have a slash,
 				// we roll over until the end of the line if we see another slash.
 				'#' => {
@@ -145,9 +156,9 @@ pub const Lexer = struct {
 			}
 		}
 	}
-	
+
 	pub fn name(self: *Self) !void {
-		
+
 		if (self.isAtEnd()) { return; }
 		while (Char.isAlphabetic(self.peek())
 		or Char.isDigit(self.peek())
@@ -155,14 +166,14 @@ pub const Lexer = struct {
 			if (self.isAtEnd()) { break; }
 			_ = self.advance();
 		}
-		
+
 		// do this later to check the names and stuff.
 		try self.push(Token.Type.name);
 	}
-	
+
 	// parses a number
 	pub fn number(self: *Self, character: u8) !void {
-		
+
 		if (self.peek() == 'x' and character == '0') {
 			// Hex number
 			_ = self.advance(); // grabs the x
@@ -175,24 +186,29 @@ pub const Lexer = struct {
 		}
 		try self.push(Token.Type.number);
 	}
-	
+
 	pub fn scan(self: *Self) !void {
 		// std.debug.print("lexing.....\n");
 		while (!self.isAtEnd()) {
 			try self.skipWhitespace();
 			self.start = self.current;
-			
+
 			if (self.isAtEnd()) { break; }
-			
+
 			const c = self.advance();
-			
+
 			if (Char.isAlphabetic(c)) { try self.name(); continue; }
 			if (Char.isDigit(c)) { try self.number(c); continue; }
-			
+
 			switch (c) {
-				'(',')','{','}','[',']',
+				'(' => self.push(.leftParen),
+				')' => self.push(.rightParen),
+				'{' => self.push(.leftBrace),
+				'}' => self.push(.rightBrace),
+				'[' => self.push(.leftBracket),
+				']' => self.push(.rightBracket),
 				'-','+','*','/','%','=',',', => {
-					try self.push(Token.Type.symbol);
+					self.push(.symbol);
 				},
 				else => {
 					continue;
@@ -200,5 +216,5 @@ pub const Lexer = struct {
 			}
 		}
 	}
-	
+
 };

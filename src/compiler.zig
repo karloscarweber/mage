@@ -6,4 +6,4 @@
 // It makes series of Chunks.
 pub const Compiler = struct {
 
-}
+};
