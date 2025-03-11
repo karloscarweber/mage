@@ -18,62 +18,30 @@ pub const Precedence = enum {
 	FACTOR,
 	UNARY,
 	CALL,
-	PRIMARY
+	PRIMARY,
 
-	pub fn to_str(self: Node) []const u8 {
+	pub fn to_str(self: Precedence) []const u8 {
 		return @tagName(self);
 	}
 };
 
-// static void grouping(bool canAssign) {
-const ParseFn = fn (canAssign: bool) void;
-
-
-pub const ParseRule = struct {
-	prefix: ?ParseFn,
-	infix: ?ParseFn,
-	precedence: Precedence
-}
-
-pub const rules = []ParseRule{
-	.{}, // Token.Type.name
-	.{}, // Token.Type.number
-	.{}, // Token.Type.symbol
-	.{}, // Token.Type.newline
-	.{}, // Token.Type.keyword
-	.{}, // Token.Type.comment
+pub const Local = struct {
+	name: Token,
+	depth: usize,
+	isCaptured: bool,
 };
 
+pub const Upvalue = struct {
+	index: usize,
+	isLocal: bool,
+};
 
-
-
-
-// AST Nodes
-// pub const Node = struct {
-// 	operation: Operation,
-// 	token: Token,
-
-// 	pub const Operation = enum {
-// 		op_name,
-// 		op_true,
-// 		op_false,
-// 		op_operator,
-// 		op_loop,
-// 		op_call,
-// 		op_return,
-// 		op_range,
-
-// 		pub fn to_str(self: Node) []const u8 {
-// 			return @tagName(self);
-// 		}
-// 	}
-
-// 	pub fn to_str(self: Node) []const u8 {
-// 		return @tagName(self);
-// 	}
-// };
-
-// const Nodes = ArrayList(Node);
+pub const FunctionType = enum {
+	function,
+	initializer,
+	method,
+	script
+};
 
 // parsers make AST?
 // Compiler takes AST and makes chunks of OpCodes.
@@ -87,9 +55,8 @@ pub const Parser = struct {
 
 	const Self = @This();
 
-	// pub fn init(allocator: Allocator, source: []const u8) !Parser {
-	pub fn init(source: []const u8) !Parser {
-		// const lexer = try Lexer.init(allocator, source);
+	pub fn init(allocator: Allocator, source: []const u8) !Parser {
+		const lexer = try Lexer.init(allocator, source);
 		return .{
 			.lexer = lexer,
 			.source = source,
@@ -100,7 +67,6 @@ pub const Parser = struct {
 		self.lexer.deinit();
 	}
 
-	// helper access methods
 	pub fn tokens(self: *Self) *Tokens {
 		return &self.lexer.tokens;
 	}
@@ -109,7 +75,10 @@ pub const Parser = struct {
 		return self.current == self.tokens().items.len;
 	}
 
-	// gets the token at an index.
+	// Gets the token at an index,
+	// but doesn't get the token if the index is greater than, or equal to
+	// the length of the tokens list.
+	// Returns a reference.
 	pub fn tokenAt(self: *Self, index: usize) *const Token {
 		if (index >= self.tokens().items.len) {
 			return &self.tokens().getLast();
@@ -130,6 +99,19 @@ pub const Parser = struct {
 	}
 	pub fn peekNextNext(self: *Self) *Token {
 		return self.tokenAt(self.current + 2);
+	}
+
+	/// Compiler functions
+
+	//
+	// pub fn grouping(self: *Self, canAssign: bool) bool {
+	pub fn grouping(self: *Self) void {
+		self.expression();
+		consume(.leftParen, "Expect ')' after expression");
+	}
+
+	pub fn expression(self: *Self) void {
+		self.parsePrecedence(.assignment);
 	}
 
 	// currentChunk
@@ -183,7 +165,7 @@ pub const Parser = struct {
 	// unary
 	// parsePrecedence
 	// getRule
-	// expression
+	// -- // expression
 	// block
 	// function
 	// method
@@ -204,7 +186,50 @@ pub const Parser = struct {
 	//beginScope
 	//endScope
 
+	const ParseFn = fn (canAssign: bool) void;
 
+	pub const ParseRule = struct {
+		prefix: ?ParseFn,
+		infix: ?ParseFn,
+		precedence: Precedence
+	};
+
+	pub const ruless = std.AutoHashMap(Token.Type, ParseRule)
+
+	pub const rules = enum(ParseRule){
+		leftParen      = .{grouping, null,  .CALL}, // .leftParen,
+		rightParen     = .{null, null, .NONE}, // .rightParen,
+		leftBrace      = .{null, null, .NONE}, // .leftBrace,
+		rightBrace     = .{null, null, .NONE}, // .rightBrace,
+		leftBracket    = .{null, null, .NONE}, // .leftBracket,
+		rightBracket   = .{null, null, .NONE}, // .rightBracket,
+		name           = .{null, null, .NONE}, // .name
+		number         = .{null, null, .NONE}, // .number
+		symbol         = .{null, null, .NONE}, // .symbol
+		newline        = .{null, null, .NONE}, // .newline
+		keyword        = .{null, null, .NONE}, // .keyword
+		comment        = .{null, null, .NONE}, // .comment
+	};
+
+	pub fn parsePrecedence(self: *Self, precedence: Precedence) void {
+		self.advance();
+		// ParseFn prefixRule = getRule(parse.previous.type)
+
+		if (prefixRule == null) {
+			error("Expect expression.");
+			return;
+		}
+
+		var canAssign: bool = precedence <= Precedence.ASSIGNMENT;
+		prefixRule(canAssign);
+
+		while (precedence <= self.getRule)
+
+	}
+
+	pub fn getRule(type: Token.type)  {
+		return &self.rules[type];
+	}
 
 	// parse() represents not just the start of the parsing party,
 	// but also the entry to our recursive structures. We use the
