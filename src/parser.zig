@@ -194,22 +194,20 @@ pub const Parser = struct {
 		precedence: Precedence
 	};
 
-	pub const ruless = std.AutoHashMap(Token.Type, ParseRule)
-
-	pub const rules = enum(ParseRule){
-		leftParen      = .{grouping, null,  .CALL}, // .leftParen,
-		rightParen     = .{null, null, .NONE}, // .rightParen,
-		leftBrace      = .{null, null, .NONE}, // .leftBrace,
-		rightBrace     = .{null, null, .NONE}, // .rightBrace,
-		leftBracket    = .{null, null, .NONE}, // .leftBracket,
-		rightBracket   = .{null, null, .NONE}, // .rightBracket,
-		name           = .{null, null, .NONE}, // .name
-		number         = .{null, null, .NONE}, // .number
-		symbol         = .{null, null, .NONE}, // .symbol
-		newline        = .{null, null, .NONE}, // .newline
-		keyword        = .{null, null, .NONE}, // .keyword
-		comment        = .{null, null, .NONE}, // .comment
-	};
+	pub const rules = EnumMap(Token.Type, ParseRule).init(.{
+		.leftParen      = .{grouping, null,  .CALL}, // .leftParen,
+		.rightParen     = .{null, null, .NONE}, // .rightParen,
+		.leftBrace      = .{null, null, .NONE}, // .leftBrace,
+		.rightBrace     = .{null, null, .NONE}, // .rightBrace,
+		.leftBracket    = .{null, null, .NONE}, // .leftBracket,
+		.rightBracket   = .{null, null, .NONE}, // .rightBracket,
+		.name           = .{null, null, .NONE}, // .name
+		.number         = .{null, null, .NONE}, // .number
+		.symbol         = .{null, null, .NONE}, // .symbol
+		.newline        = .{null, null, .NONE}, // .newline
+		.keyword        = .{null, null, .NONE}, // .keyword
+		.comment        = .{null, null, .NONE}, // .comment
+	});
 
 	pub fn parsePrecedence(self: *Self, precedence: Precedence) void {
 		self.advance();
