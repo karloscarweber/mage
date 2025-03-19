@@ -9,6 +9,8 @@ const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
 const testing = std.testing;
 const print = std.debug.print;
+// const printer = @import("../printer.zig");
+// const puts = printer.puts;
 
 // String comparison helper.
 pub const String = struct {
@@ -55,9 +57,15 @@ test "skips whitespace" {
 	try expect(lexer.peek() == 'h');
 }
 
-fn debugLexer(lexer: *Lexer) !void {
+fn debugLexer(lexer: *Lexer) void {
 	for (lexer.tokens.items) |item| {
-		const thing = try item.to_str(&lexer.source);
+        const thing = switch (item.to_str(&lexer.source)) {
+            .ok => |thing| thing,
+            .err => "This is stupid"
+		};
+		// const thing = item.to_str(&lexer.source) catch {
+		//   "This sucks";
+		// };
 		std.debug.print("{s}\n", .{thing});
 	}
 }
@@ -87,4 +95,35 @@ test "scanner scans source code" {
 	// try expect(lexer.advance() == 'l');
 	// try expect(lexer.peek() == 'l');
 	// try expect(!lexer.isAtEnd());
+}
+
+const other_source_code =
+\\"hello friends
+\\15 + 20
+\\99.999 + 0x0FF0
+\\// This is a comment
+\\()
+\\99 - 22 * 11 % 44
+\\[]{}
+\\= something
+;
+
+test "scanner scans more code" {
+    var lexer = try Lexer.init(testing.allocator, other_source_code);
+	defer lexer.deinit();
+	try lexer.scan();
+
+	const tokens = lexer.tokens.items;
+	const TokenType = Token.Type;
+
+	expect(tokens.len == 32) catch {
+	   print("[ERROR]: Incorrect number of tokens. Found {d}, expected: 32.\n", .{lexer.tokens.items.len});
+	};
+
+	debugLexer(&lexer);
+
+	// std.debug.print("{d}\n", .{lexer.tokens.items.len});
+	// try expect(tokens[0].type == TokenType.leftParen);
+	// try expect(lexer.advance() == 'h');
+	// try expect(lexer.advance() == 'e');
 }
