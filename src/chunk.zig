@@ -40,4 +40,4 @@ pub const Chunk = struct {
     capacity: usize,
     lexer: Lexer,
     name: []const u8,
-}
+};
