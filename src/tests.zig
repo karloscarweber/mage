@@ -9,4 +9,5 @@ comptime {
     _ = @import("test/test_root.zig");
     _ = @import("test/test_lexer.zig");
     _ = @import("test/test_parser.zig");
+    _ = @import("test/test_value.zig");
 }

@@ -1,6 +1,5 @@
 const vl = @import("../value.zig");
 const Value = vl.Value;
-// const Obj = vl.Obj;
 
 const std = @import("std");
 const builtin = @import("builtin");
@@ -9,11 +8,26 @@ const Allocator = std.mem.Allocator;
 const testing = std.testing;
 const print = std.debug.print;
 
+// TESTS
+const expect = testing.expect;
+
 // Parse a value into a value.
 
+test "Values can be created" {
+    const val = Value.ValueAs{ .int = 0 };
+    const nilValueOne = Value.new(Value.Type.Nil, val);
+    
+    const nilValue = Value.init();
+    
+    const val2 = Value.ValueAs{ .int = 15 };
+    const intValue = Value.new(Value.Type.Int, val2);
 
-test "Values can be created from strings" {
-
+    try expect(nilValueOne.isNil());
+    try expect(nilValue.isNil());
+    try expect(intValue.isNumber());
+    const numberValue = 15;
+    try expect(intValue.as.int == numberValue);
+    
     // make some strings with values
     // 15
     // 19.99
