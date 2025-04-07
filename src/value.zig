@@ -8,11 +8,34 @@
 //  * Nil
 //  * Function
 //
+// All values, save for functions, are Box types. Copying the Value
+// copies the value. Functions are reference types.
 
 const std = @import("std");
+const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 
+const ObjType = enum {
+    function,
+    string,
+};
+
+const Obj = struct {
+    type: ObjType,
+    isDark: bool,
+    next: *Obj,
+}
+
+pub const ValueType = enum {
+    val_false,
+    val_true,
+    val_nil,
+    val_num,
+    val_obj,
+}
+
 pub const Value = struct {
+    type: ValueType,
     as: As,
 
     const Self = @This();
@@ -88,5 +111,13 @@ pub const Values = ArrayList(Value);
 pub const ValueArray = struct {
     capacity: usize,
     count: usize,
-    values: Values
+    values: Values,
+    
+    pub fn init(allocator: Allocator) !ValueArray {
+        return .{
+            .capacity =  0,
+            .count =  0,
+            .values =  Values.init(allocator),
+        };
+    }
 };
