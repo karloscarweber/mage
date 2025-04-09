@@ -11,7 +11,7 @@ const expect = testing.expect;
 // Test Lexer fucntiosn
 // Lexer.isAtEnd()
 test "Parser functions" {
-	var parser = try Parser.init(testing.allocator, "hello friends!");
-	defer parser.deinit();
-	try expect(parser.parse());
+    var parser = try Parser.init(testing.allocator, "hello friends!");
+    defer parser.deinit();
+    try expect(parser.parse());
 }

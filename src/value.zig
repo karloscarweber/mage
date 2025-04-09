@@ -24,7 +24,7 @@ const Obj = struct {
     type: ObjType,
     isDark: bool,
     next: *Obj,
-}
+};
 
 pub const ValueType = enum {
     val_false,
@@ -32,7 +32,7 @@ pub const ValueType = enum {
     val_nil,
     val_num,
     val_obj,
-}
+};
 
 pub const Value = struct {
     type: ValueType,
@@ -61,28 +61,28 @@ pub const Value = struct {
     }
 
     // value.isBool(), or .isNumber(), returns true or false statement thingys
-    pub fn isBool(self: Self) bool { 
+    pub fn isBool(self: Self) bool {
         switch (self.as) {
             .boolean => return true,
             else => return false,
         }
-    }
+    }zig
     
-    pub fn isNil(self: Self) bool { 
+    pub fn isNil(self: Self) bool {
         switch (self.as) {
             .nil => return true,
             else => return false,
         }
     }
     
-    pub fn isNumber(self: Self) bool { 
+    pub fn isNumber(self: Self) bool {
         switch (self.as) {
             .float, .int => return true,
             else => return false,
         }
     }
     
-    pub fn isFalsy(self: Self) bool { 
+    pub fn isFalsy(self: Self) bool {
         const it = self.as;
         switch (it) {
             .float => |floating_point| {
@@ -100,7 +100,7 @@ pub const Value = struct {
         return true;
     }
     
-    pub fn isTruthy(self: Self) bool { 
+    pub fn isTruthy(self: Self) bool {
         return (!self.isFalsy());
     }
 
