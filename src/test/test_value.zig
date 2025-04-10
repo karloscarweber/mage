@@ -27,36 +27,36 @@ test "Figure out unions" {
 }
 
 test "Values can be created" {
-    const nilValue = Value.new(.nil);
-    const intValue = Value.init(.{ .int = 15 });
-    const floatValue = Value.init(.{ .float = 15.55 });
+    const nilValue = Value.new.NIL();
+    const intValue = Value.new.NUMBER(15);
+    const floatValue = Value.new.NUMBER(15.55);
 
     try expect(nilValue.isNil());
     try expect(intValue.isNumber());
     try expect(floatValue.isNumber());
 
     const numberValue = 15;
-    try expect(intValue.as.int == numberValue);
+    try expect(intValue.as.num == numberValue);
 
     const floatTest = 15.55;
-    try expect(floatValue.as.float == floatTest);
+    try expect(floatValue.as.num == floatTest);
 }
 
 test "Bool Values can be created" {
-    const boolValue = Value.init(.{ .boolean = false });
+    const boolValue = Value.new.FALSE();
     try expect(boolValue.isFalsy());
     try expect(!boolValue.isTruthy());
 
-    const trueValue = Value.init(.{ .boolean = true });
+    const trueValue = Value.new.TRUE();
     try expect(trueValue.isTruthy());
 
-    const falseValue = Value.init(.{ .boolean = false });
+    const falseValue = Value.new.FALSE();
     try expect(falseValue.isFalsy());
 
-    const wrong = Value{ .as = .{ .boolean = false } };
+    const wrong = Value.new.FALSE();
     try expect(wrong.isFalsy());
 
-    const whatever = Value.new(.{ .boolean = false });
+    const whatever = Value.new.FALSE();
     try expect(whatever.isFalsy());
 }
 

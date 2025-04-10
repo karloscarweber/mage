@@ -24,12 +24,14 @@ const Obj = struct {
     type: ObjType,
     isDark: bool,
     next: *Obj,
+    
+    const Self = @This();
 };
 
 pub const ValueType = enum {
     val_false,
-    val_true,
     val_nil,
+    val_true,
     val_num,
     val_obj,
 };
@@ -41,59 +43,64 @@ pub const Value = struct {
     const Self = @This();
 
     pub const As = union(enum) {
-        int: i64,
-        float: f64,
-        boolean: bool,
-        nil: void,
+        num: f64,
+        obj: *Obj,
     };
 
-    // makes a new Value:
-    //
-    // const value1 = Value.init(.nil);
-    // const value2 = Value.init(.{.int = 15});
-    // const value3 = Value.init(.{.float = 0.99});
-    pub fn init(value: As) Value {
-        return .{.as = value};
+    pub fn init(value: As, val_type: ValueType) Value {
+        return .{.as = value, .type = val_type};
     }
-    
-    pub fn new(value: As) Value {
-        return Value.init(value);
-    }
+
+    pub const new = struct {
+        pub fn FALSE() Value {
+            return Value.init(.{.num = 0}, .val_false);
+        }
+        pub fn NIL() Value {
+            return Value.init(.{.num = 0}, .val_nil);
+        }
+        pub fn TRUE() Value {
+            return Value.init(.{.num = 1}, .val_true);
+        }
+        pub fn NUMBER(number: f64) Value {
+            return Value.init(.{.num = number}, .val_num);
+        }
+        pub fn OBJECT(obj: f64) Value {
+            return Value.init(.{.obj = obj}, .val_obj);
+        }
+    };
 
     // value.isBool(), or .isNumber(), returns true or false statement thingys
     pub fn isBool(self: Self) bool {
-        switch (self.as) {
-            .boolean => return true,
+        switch (self.type) {
+            .val_false, .val_true => return true,
             else => return false,
         }
-    }zig
+    }
     
     pub fn isNil(self: Self) bool {
-        switch (self.as) {
-            .nil => return true,
+        switch (self.type) {
+            .val_nil => return true,
             else => return false,
         }
     }
     
     pub fn isNumber(self: Self) bool {
-        switch (self.as) {
-            .float, .int => return true,
+        switch (self.type) {
+            .val_num => return true,
             else => return false,
         }
     }
     
     pub fn isFalsy(self: Self) bool {
-        const it = self.as;
-        switch (it) {
-            .float => |floating_point| {
-                if (floating_point > 0) { return false; }
-                
-            }, .int => |integer| {
-                if (integer > 0) { return false; }
-                
-            },
-            .boolean => |bl| {
-                if (bl == true) { return false; }
+        switch (self.type) {
+            .val_false, .val_nil => { return true; },
+            .val_num => {
+                switch (self.as) {
+                    .num => { if (self.as.num == 0) {
+                        return true;
+                    } },
+                    else => { return false; }
+                }
             },
             else => return false,
         }
@@ -103,7 +110,6 @@ pub const Value = struct {
     pub fn isTruthy(self: Self) bool {
         return (!self.isFalsy());
     }
-
 };
 
 pub const Values = ArrayList(Value);
