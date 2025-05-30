@@ -14,19 +14,9 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
-
-const ObjType = enum {
-    function,
-    string,
-};
-
-const Obj = struct {
-    type: ObjType,
-    isDark: bool,
-    next: *Obj,
-    
-    const Self = @This();
-};
+const objects = @import("object.zig");
+const Obj = objects.Obj;
+const ObjType = objects.ObjType;
 
 pub const ValueType = enum {
     val_false,

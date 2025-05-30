@@ -7,25 +7,11 @@ const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
 const testing = std.testing;
 const print = std.debug.print;
-// const NIL = vl.NIL;
 
 // TESTS
 const expect = testing.expect;
 
 // Parse a value into a value.
-
-pub const Ass = union(enum) {
-    int: i64,
-    float: f64,
-    boolean: bool,
-    nil,
-};
-
-test "Figure out unions" {
-    const thing = Ass{ .int = 10 };
-    try expect(thing.int == 10);
-}
-
 test "Values can be created" {
     const nilValue = Value.new.NIL();
     const intValue = Value.new.NUMBER(15);

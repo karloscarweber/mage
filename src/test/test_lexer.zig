@@ -57,18 +57,12 @@ test "skips whitespace" {
     try expect(lexer.peek() == 'h');
 }
 
-// fn debugLexer(lexer: *Lexer) void {
-//  for (lexer.tokens.items) |item| {
-//         const thing = switch (item.to_str(&lexer.source)) {
-//             .ok => |thing| thing,
-//             .err => "This is stupid"
-//         };
-//         // const thing = item.to_str(&lexer.source) catch {
-//         //   "This sucks";
-//         // };
-//         std.debug.print("{s}\n", .{thing});
-//  }
-// }
+fn debugLexer(lexer: *Lexer) void {
+    for (lexer.tokens.items) |token| {
+        const thing = token.to_str(&lexer.source) catch "shit";
+        std.debug.print("{s}\n", .{thing});
+    }
+}
 
 const big_source_code =
     \\"hello friends
@@ -106,6 +100,8 @@ const other_source_code =
     \\99 - 22 * 11 % 44
     \\[]{}
     \\= something
+    \\== !=
+    \\ I love it here
 ;
 
 test "scanner scans more code" {
@@ -114,16 +110,10 @@ test "scanner scans more code" {
     try lexer.scan();
 
     const tokens = lexer.tokens.items;
-    // const TokenType = Token.Type;
-    const tokenNumber = 35;
+    const tokenNumber = 43;
+    
     expect(tokens.len == tokenNumber) catch {
+        debugLexer(&lexer);
         print("[ERROR]: Incorrect number of tokens. Found {d}, expected: {d}.\n", .{ lexer.tokens.items.len, tokenNumber });
     };
-
-    // debugLexer(&lexer);
-
-    // std.debug.print("{d}\n", .{lexer.tokens.items.len});
-    // try expect(tokens[0].type == TokenType.leftParen);
-    // try expect(lexer.advance() == 'h');
-    // try expect(lexer.advance() == 'e');
 }

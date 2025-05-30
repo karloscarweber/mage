@@ -31,7 +31,10 @@ pub const Token = struct {
         star,
         slash,
         modulo,
+        bang_equal,
         equal,
+        equal_equal,
+        not, // unary not !
         comma,
         name,
         number,
@@ -92,8 +95,10 @@ pub const Lexer = struct {
         self.tokens.deinit();
     }
 
+    // checks to see if the pointer to the current
+    // character is the last character or not.
     pub fn isAtEnd(self: *Self) bool {
-        return self.current == self.source.len - 1;
+        return (self.current >= self.source.len - 1);
     }
 
     // returns a legit character, or the EOF null terminating byte.
@@ -172,14 +177,13 @@ pub const Lexer = struct {
     }
 
     pub fn name(self: *Self) !void {
-        if (self.isAtEnd()) {
-            return;
-        }
+        
         while (Char.isAlphabetic(self.peek()) or Char.isDigit(self.peek()) or '_' == self.peek()) {
+            _ = self.advance();
             if (self.isAtEnd()) {
+                _ = self.advance();
                 break;
             }
-            _ = self.advance();
         }
 
         // do this later to check the names and stuff.
@@ -204,7 +208,7 @@ pub const Lexer = struct {
     }
 
     pub fn scan(self: *Self) !void {
-        // std.debug.print("lexing.....\n");
+        
         while (!self.isAtEnd()) {
             try self.skipWhitespace();
             self.start = self.current;
@@ -240,7 +244,22 @@ pub const Lexer = struct {
                     }
                 },
                 '%' => self.push(.modulo),
-                '=' => self.push(.equal),
+                '!' => {
+                    if (self.peek() == '=') {
+                        _ = self.advance();
+                        self.push(.bang_equal);
+                    } else {
+                        self.push(.not);
+                    }
+                },
+                '=' => {
+                    if (self.peek() == '=') {
+                        _ = self.advance();
+                        self.push(.equal_equal);
+                    } else {
+                        self.push(.equal);
+                    }
+                },
                 ',' => self.push(.comma),
                 else => {
                     continue;

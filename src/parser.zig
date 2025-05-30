@@ -9,7 +9,6 @@ pub const Tokens = lex.Tokens;
 pub const Token = lex.Token;
 const printer = @import("printer.zig");
 const puts = printer.puts;
-// const EnumField = std.builtin.Type.EnumField;
 const EnumMap = std.builtin.Type.EnumMap;
 
 pub const Precedence = enum {
@@ -30,28 +29,60 @@ pub const Precedence = enum {
     }
 };
 
-pub const Local = struct {
-    name: Token,
-    depth: usize,
-    isCaptured: bool,
+// pub const FunctionType = enum { function, initializer, method, script };
+
+// SyntaxCode = enum {
+//
+// };
+// Nodes are linked list type of things. They have a type, an optional value, an
+// optional name, and an optional list of sub nodes. Nodes behave differently
+// based on their type. So a function node will have sub nodes, which is the
+// parameters, and what is inside of the nodes. Displaying, or compiling
+// different Node types
+pub const Node = struct {
+    type: Type, // value or operator
+    value: ?Value,
+    left: ?Node,
+    right: ?Node,
+    
+    pub const Type = enum {
+        VALUE, // has one node
+            NUMBER,
+            NAME,
+        // CONDITIONAL, // it's a comparison thing i think
+        OPERATOR, // has one node
+            OP_ASSIGNMENT, // Assignment: number = 15
+            OP_EQUAL, // Equal: 5 == 5
+            OP_NOT_EQUAL, // Not Equal: true != false
+            OP_GREATER_THAN, // Greater than: 100 > 99
+            OP_GREATER_THAN_EQUAL, // Greater than equal: 19 >= 10
+            OP_LESS_THAN, // Less than: 9 < 10
+            OP_LESS_THAN_EQUAL, // Less than equal: 5 <= 10
+            OP_SUB, // subtact 19 - 9
+            OP_ADD, // add: 1 + 1
+            OP_MUL, // multiply: 10 * 12
+            OP_MOD, // modulo: 10 % 12
+            OP_DIV, // divide: 5 / 10
+            OP_NOT, // unary not: !variable
+            OP_NEG, // unary Negative: -15
+    };
 };
 
-pub const Upvalue = struct {
-    index: usize,
-    isLocal: bool,
-};
+pub const SyntaxNode = Node;
 
-pub const FunctionType = enum { function, initializer, method, script };
+pub const Nodes = ArrayList(Node);
 
-// parsers make AST?
+// Parsers make an AST? from a series of Tokens found in a Lexer
+// So a Lexer is important. It gives us raw tokens. Here we make some sense
+// of things, and put together some raw source code.
 // Compiler takes AST and makes chunks of OpCodes.
 pub const Parser = struct {
     lexer: Lexer,
     source: []const u8,
     current: usize = 0,
-    previous: usize = 0,
-    hadError: bool = false,
-    panic: bool = false,
+    // previous: usize = 0,
+    // hadError: bool = false,
+    // panic: bool = false,
 
     const Self = @This();
 
@@ -62,11 +93,12 @@ pub const Parser = struct {
             .source = source,
         };
     }
-
+    
     pub fn deinit(self: *Self) void {
         self.lexer.deinit();
     }
-
+    
+    // Helper function to get tokens.
     pub fn tokens(self: *Self) *Tokens {
         return &self.lexer.tokens;
     }
@@ -101,17 +133,11 @@ pub const Parser = struct {
         return self.tokenAt(self.current + 2);
     }
 
-    /// Compiler functions
+    /// Parsing functions
 
-    //
-    // pub fn grouping(self: *Self, canAssign: bool) bool {
     pub fn grouping(self: *Self) void {
         self.expression();
         self.consume(.leftParen, "Expect ')' after expression");
-    }
-
-    pub fn expression(self: *Self) void {
-        self.parsePrecedence(.assignment);
     }
 
     pub fn consume(self: *Self, typ: Token.Type, message: []const u8) void {
@@ -126,131 +152,34 @@ pub const Parser = struct {
         return self.current.type == typ;
     }
 
-    pub fn match(self: *Self, typ: Token.Type) bool {
+    pub fn match(self: *Self, types: [Token.Type]) bool {
         if (!self.check(typ)) {
             return false;
         }
         self.advance();
         return true;
     }
-
-    // currentChunk
-    // errorAt
-    // error
-    // errorAtCurrent
-    // advance
-    // consume
-    // check
-    // match
-    // emitByte
-    // emitBytes
-    // emitLoop
-    // emitJump
-    // emitReturn
-    // makeConstant
-    // emitConstant
-    // patchJupm
-    // initCompiler
-    // endCompiler
-    // beginScope
-    // endScope
-    // expression
-    // statement
-    // declaration
-    // getRule
-    // parsePrecedence
-    // identifierConstant
-    // identifiersEqual
-    // resolveLocal
-    // addLocal
-    // declareVariable
-    // parseVariable
-    // markInitialized
-    // defineVariable
-    // argumentList
-    // and_
-    // binary
-    // call
-    // dot
-    // literal
-    // grouping
-    // number
-    // or_
-    // string
-    // namedVariable
-    // variable
-    // sytheticToken
-    // super_
-    // this_
-    // unary
-    // parsePrecedence
-    // getRule
-    // -- // expression
-    // block
-    // function
-    // method
-    // classDeclaration
-    // funDeclaration
-    // varDeclaration
-    // expressionStatement
-    // forStatement
-    // printStatement
-    // returnStatement
-    // whileStatement
-    // synchronize
-    // declaration
-    // statement
-    // compile
-    // markCompilerRoots
-
-    //beginScope
-    //endScope
-
-    const ParseFn = fn (canAssign: bool) void;
-
-    pub const ParseRule = struct { prefix: ?ParseFn, infix: ?ParseFn, precedence: Precedence };
-
-    pub const rules = EnumMap(Token.Type, ParseRule).init(.{
-        .leftParen = .{ grouping, null, .CALL }, // .leftParen,
-        .rightParen = .{ null, null, .NONE }, // .rightParen,
-        .leftBrace = .{ null, null, .NONE }, // .leftBrace,
-        .rightBrace = .{ null, null, .NONE }, // .rightBrace,
-        .leftBracket = .{ null, null, .NONE }, // .leftBracket,
-        .rightBracket = .{ null, null, .NONE }, // .rightBracket,
-        .name = .{ null, null, .NONE }, // .name
-        .number = .{ null, null, .NONE }, // .number
-        .symbol = .{ null, null, .NONE }, // .symbol
-        .newline = .{ null, null, .NONE }, // .newline
-        .keyword = .{ null, null, .NONE }, // .keyword
-        .comment = .{ null, null, .NONE }, // .comment
-    });
-
-    pub fn parsePrecedence(self: *Self, precedence: Precedence) void {
-        self.advance();
-        const prefixRule: ParseFn = getRule(parse.previous.type).prefix;
-        if (prefixRule == null) {
-            self.errorr("Expect expression.", .{});
-            return;
+    
+    const BANG_EQUAL = Token.Type.equal;
+    const EQUAL_EQUAL = Token.Type.equal;
+    
+    pub fn equality(self: *Self) Node {
+        var expr = comparison()
+        const sequence = [_]token{ BANG_EQUAL, EQUAL_EQUAL, 6 };
+        while (match(BANG_EQUAL, EQUAL_EQUAL)) {
+            const operator = previous();
+            const right = comparision();
+            expr = Node.Binary(expr, operator, right);
         }
-
-        const canAssign: bool = precedence <= Precedence.ASSIGNMENT;
-        prefixRule(canAssign);
-
-        while (precedence <= self.getRule(self.current.type).precedence) {
-            self.advance();
-            const infixRule = getRule(self.previous.type).infix;
-            infixRule(canAssign);
-        }
-
-        if (canAssign and match(.equal)) {
-            self.errorr("Invalid assignment target.");
-        }
+        
+        return expr;
     }
-
-    pub fn getRule(self: *Self, typ: Token.type) *ParseFn {
-        return &self.rules[typ];
+    
+    pub fn expression(self: *Self) Node {
+        return equality();
+        // self.parsePrecedence(.assignment);
     }
-
+    
     // parse() represents not just the start of the parsing party,
     // but also the entry to our recursive structures. We use the
     // base token types to enter unique functions that parse out
@@ -272,33 +201,114 @@ pub const Parser = struct {
         return true;
     }
 
+    // currentChunk
+    // errorAt
+    // error
+    // errorAtCurrent
+    // advance
+    // consume
+    // check
+    // match
+    
+    
+    // expression
+    // statement
+    // declaration
+    // getRule
+    // parsePrecedence
+    
+    
+    // and_
+    // binary
+    // call
+    // dot
+    // literal
+    // grouping
+    // number
+    // or_
+    // string
+    
+    
+    // unary
+    // parsePrecedence
+    // getRule
+    // -- // expression
+    
+    // declaration
+    // statement
+
+    // const ParseFn = fn (canAssign: bool) void;
+
+    // pub const ParseRule = struct { prefix: ?ParseFn, infix: ?ParseFn, precedence: Precedence };
+
+    // pub const rules = EnumMap(Token.Type, ParseRule).init(.{
+    //     .leftParen    = .{ grouping, null, .CALL }, // .leftParen,
+    //     .rightParen   = .{ null, null, .NONE }, // .rightParen,
+    //     .leftBrace    = .{ null, null, .NONE }, // .leftBrace,
+    //     .rightBrace   = .{ null, null, .NONE }, // .rightBrace,
+    //     .leftBracket  = .{ null, null, .NONE }, // .leftBracket,
+    //     .rightBracket = .{ null, null, .NONE }, // .rightBracket,
+    //     .name         = .{ null, null, .NONE }, // .name
+    //     .number       = .{ null, null, .NONE }, // .number
+    //     .symbol       = .{ null, null, .NONE }, // .symbol
+    //     .newline      = .{ null, null, .NONE }, // .newline
+    //     .keyword      = .{ null, null, .NONE }, // .keyword
+    //     .comment      = .{ null, null, .NONE }, // .comment
+    // });
+
+//     pub fn parsePrecedence(self: *Self, precedence: Precedence) void {
+//         self.advance();
+//         const prefixRule: ParseFn = getRule(parse.previous.type).prefix;
+//         if (prefixRule == null) {
+//             self.errorr("Expect expression.", .{});
+//             return;
+//         }
+//
+//         const canAssign: bool = precedence <= Precedence.ASSIGNMENT;
+//         prefixRule(canAssign);
+//
+//         while (precedence <= self.getRule(self.current.type).precedence) {
+//             self.advance();
+//             const infixRule = getRule(self.previous.type).infix;
+//             infixRule(canAssign);
+//         }
+//
+//         if (canAssign and match(.equal)) {
+//             self.errorr("Invalid assignment target.");
+//         }
+//     }
+//
+//     pub fn getRule(self: *Self, typ: Token.type) *ParseFn {
+//         return &self.rules[typ];
+//     }
+
     // error utilities
-    pub fn errorAt(self: *Self, token: *Token, message: []const u8) !void {
-        if (self.panicMode) {
-            return;
-        }
-        self.panicMode = true;
-        puts("[line {d}] Error", .{token.line});
-
-        switch (token.type) {
-            Token.Type.eof => puts(" at end", .{}),
-            Token.Type.err => {},
-            else => {
-                puts(" at\n", .{token.line});
-                puts(" at '%s'", .{token.literal});
-            },
-        }
-
-        puts(": %s\n", .{message});
-    }
-
-    pub fn errorr(self: *Self, message: []const u8) void {
-        self.errorAt(&self.previous, message);
-    }
-
-    pub fn errorAtCurrent(self: *Self, message: []const u8) void {
-        self.errorAt(&self.current, message);
-    }
+//     pub fn errorAt(self: *Self, token: *Token, message: []const u8) !void {
+//         if (self.panicMode) {
+//             return;
+//         }
+//         self.panicMode = true;
+//         puts("[line {d}] Error", .{token.line});
+//
+//         switch (token.type) {
+//             Token.Type.eof => puts(" at end", .{}),
+//             Token.Type.err => {},
+//             else => {
+//                 puts(" at\n", .{token.line});
+//                 puts(" at '%s'", .{token.literal});
+//             },
+//         }
+//
+//         puts(": %s\n", .{message});
+//     }
+//
+//     pub fn errorr(self: *Self, message: []const u8) void {
+//         self.errorAt(&self.previous, message);
+//     }
+//
+//     pub fn errorAtCurrent(self: *Self, message: []const u8) void {
+//         self.errorAt(&self.current, message);
+//     }
 };
 
 // # AST

@@ -6,17 +6,21 @@ I think this does it.
 ```
 comment         -> '#' + (anytext)* + newline
 tableLiteral    -> { ( '"' anytext '"' )*  }
-expression      -> (name | number | call)
-call            -> funcName + parameters
-function        -> name + paremeterList + funcbody
+expression      -> ( literal | NAME | call | unary | binary | grouping )
+literal         -> NUMBER
+unary           -> ( '!' | '-' ) expression
+binary          -> expression operator expression
+call            -> funcName + paremeterList
+function        -> NAME + paremeterList + funcbody
 parameters      -> (expression + ',')*
-paremeterList   -> '(' (name)* ')'
+paremeterList   -> '(' (NAME)* ')'
+grouping        -> '(' expression ')'
 funcbody        -> '{' expressions '}'
 newline         -> '\n'
 whitespace      -> ( ' ' | '\r' | '\t' )*
-anytext         -> (name | whitespace | number) not newline
-name            -> letter + ( letter | '_' | digit )
-number          -> ('0'..'9' | "0x") + (digit | '_') | digit + '.' + digit
+anytext         -> (NAME | whitespace | NUMBER) not newline
+NAME            -> letter + ( letter | '_' | digit )*
+NUMBER          -> ('0'..'9' | "0x") + (digit | '_') | digit + '.' + digit
 letter          -> ('a'..'z' | 'A'..'Z')*
 digit           -> ('0'..'9')*
 ```

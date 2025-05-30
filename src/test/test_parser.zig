@@ -15,3 +15,9 @@ test "Parser functions" {
     defer parser.deinit();
     try expect(parser.parse());
 }
+
+test "Parser parses comments correctly" {
+    var parser = try Parser.init(testing.allocator, "hello friends!");
+    defer parser.deinit();
+    try expect(parser.parse());
+}
