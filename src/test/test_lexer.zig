@@ -102,6 +102,7 @@ const other_source_code =
     \\= something
     \\== !=
     \\ I love it here
+    \\ > >= < <=
 ;
 
 test "scanner scans more code" {
@@ -110,7 +111,7 @@ test "scanner scans more code" {
     try lexer.scan();
 
     const tokens = lexer.tokens.items;
-    const tokenNumber = 43;
+    const tokenNumber = 48;
     
     expect(tokens.len == tokenNumber) catch {
         debugLexer(&lexer);

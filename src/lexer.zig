@@ -34,6 +34,10 @@ pub const Token = struct {
         bang_equal,
         equal,
         equal_equal,
+        greater,
+        greater_equal,
+        less,
+        less_equal,
         not, // unary not !
         comma,
         name,
@@ -63,8 +67,8 @@ pub const Token = struct {
         const lit = try self.literal(source);
 
         const typ = self.type.to_str();
-        var buffer: [12]u8 = undefined;
-        const thing = try bufPrint(&buffer, "{s: <12}", .{typ});
+        var buffer: [16]u8 = undefined;
+        const thing = try bufPrint(&buffer, "{s: <16}", .{typ});
         const str = try std.fmt.allocPrint(std.heap.page_allocator, "{s} {d}:[{d}..{d}] - {s}", .{ thing, self.line, self.start, self.length, lit });
         return str;
     }
@@ -258,6 +262,22 @@ pub const Lexer = struct {
                         self.push(.equal_equal);
                     } else {
                         self.push(.equal);
+                    }
+                },
+                '>' => {
+                    if (self.peek() == '=') {
+                        _ = self.advance();
+                        self.push(.greater_equal);
+                    } else {
+                        self.push(.greater);
+                    }
+                },
+                '<' => {
+                    if (self.peek() == '=') {
+                        _ = self.advance();
+                        self.push(.less_equal);
+                    } else {
+                        self.push(.less);
                     }
                 },
                 ',' => self.push(.comma),
