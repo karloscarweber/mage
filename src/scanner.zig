@@ -76,10 +76,10 @@ pub const Token = struct {
 
 pub const Tokens = ArrayList(Token);
 
-// Lexer Struct
-// it manages the state of the Lexer as it runs through source code before
+// Scanner Struct
+// it manages the state of the Scanner as it runs through source code before
 // passing the stuff off to the parser.
-pub const Lexer = struct {
+pub const Scanner = struct {
     start: usize = 0,
     current: usize = 0,
     line: usize = 1,
@@ -88,7 +88,7 @@ pub const Lexer = struct {
 
     const Self = @This();
 
-    pub fn init(allocator: Allocator, source: []const u8) !Lexer {
+    pub fn init(allocator: Allocator, source: []const u8) !Scanner {
         return .{
             .source = source,
             .tokens = Tokens.init(allocator),

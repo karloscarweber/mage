@@ -1,6 +1,6 @@
 const std = @import("std");
-const lex = @import("lexer.zig");
-const Lexer = lex.Lexer;
+const scn = @import("scanner.zig");
+const Scanner = scn.Scanner;
 
 pub const OpCode = enum {
     // expressions
@@ -38,6 +38,6 @@ pub const OpCode = enum {
 pub const Chunk = struct {
     count: usize,
     capacity: usize,
-    lexer: Lexer,
+    scanner: Scanner,
     name: []const u8,
 };

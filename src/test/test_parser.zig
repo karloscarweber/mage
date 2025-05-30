@@ -8,8 +8,8 @@ const print = std.debug.print;
 // TESTS
 const expect = testing.expect;
 
-// Test Lexer fucntiosn
-// Lexer.isAtEnd()
+// Test Scanner functions
+// Scanner.isAtEnd()
 test "Parser functions" {
     var parser = try Parser.init(testing.allocator, "hello friends!");
     defer parser.deinit();
@@ -21,3 +21,9 @@ test "Parser parses comments correctly" {
     defer parser.deinit();
     try expect(parser.parse());
 }
+//
+// test "Parser does something with our matchers" {
+//     var parser = try Parser.init(testing.allocator, "hello friends!");
+//     defer parser.deinit();
+//     try expect(parser.parse());
+// }

@@ -3,10 +3,10 @@
 A small math language.
 
 ## Progress
-- [ ] Lexer
+- [ ] Scanner
 - [ ] Parser
 - [ ] Compiler
-- [ ] VM
+- [ ] VM Interpeter
 
 ## Building the project
 Run `zig build`.

@@ -3,7 +3,7 @@ const stdout = std.io.getStdOut().writer();
 const builtin = @import("builtin");
 const Role = enum { SE, DPE, DE, DA, PM, PO, KS };
 
-const lexer = @import("lexer.zig");
+const scanner = @import("scanner.zig");
 
 pub fn main() !void {
     // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -23,5 +23,5 @@ pub fn main() !void {
         },
     }
     try stdout.print("{s}\n", .{area});
-    lexer.lex();
+    scanner.scan();
 }

@@ -1,15 +1,24 @@
 const std = @import("std");
 const stdout = std.io.getStdOut().writer();
-const lex = @import("lexer.zig");
+const scn = @import("scanner.zig");
 const builtin = @import("builtin");
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
-const Lexer = lex.Lexer;
-pub const Tokens = lex.Tokens;
-pub const Token = lex.Token;
+const Scanner = scn.Scanner;
+pub const Tokens = scn.Tokens;
+pub const Token = scn.Token;
+pub const TokenType = Token.Type;
 const printer = @import("printer.zig");
 const puts = printer.puts;
 const EnumMap = std.builtin.Type.EnumMap;
+
+// token, shorthand, re-declarations
+const BANG_EQUAL = Token.Type.bang_equal;
+const EQUAL_EQUAL = Token.Type.equal_equal;
+const GREATER = Token.Type.greater;
+const GREATER_EQUAL = Token.Type.greater_equal;
+const LESS = Token.Type.less;
+const LESS_EQUAL = Token.Type.less_equal;
 
 pub const Precedence = enum {
     NONE,
@@ -29,100 +38,90 @@ pub const Precedence = enum {
     }
 };
 
-// pub const FunctionType = enum { function, initializer, method, script };
-
-// SyntaxCode = enum {
-//
-// };
-// Nodes are linked list type of things. They have a type, an optional value, an
-// optional name, and an optional list of sub nodes. Nodes behave differently
-// based on their type. So a function node will have sub nodes, which is the
-// parameters, and what is inside of the nodes. Displaying, or compiling
-// different Node types
-pub const Node = struct {
-    type: Type, // value or operator
-    value: ?Value,
-    left: ?Node,
-    right: ?Node,
-    
-    pub const Type = enum {
-        VALUE, // has one node
-            NUMBER,
-            NAME,
-        // CONDITIONAL, // it's a comparison thing i think
-        OPERATOR, // has one node
-            OP_ASSIGNMENT, // Assignment: number = 15
-            OP_EQUAL, // Equal: 5 == 5
-            OP_NOT_EQUAL, // Not Equal: true != false
-            OP_GREATER_THAN, // Greater than: 100 > 99
-            OP_GREATER_THAN_EQUAL, // Greater than equal: 19 >= 10
-            OP_LESS_THAN, // Less than: 9 < 10
-            OP_LESS_THAN_EQUAL, // Less than equal: 5 <= 10
-            OP_SUB, // subtact 19 - 9
-            OP_ADD, // add: 1 + 1
-            OP_MUL, // multiply: 10 * 12
-            OP_MOD, // modulo: 10 % 12
-            OP_DIV, // divide: 5 / 10
-            OP_NOT, // unary not: !variable
-            OP_NEG, // unary Negative: -15
-    };
+// opcodes
+pub const OPCode = enum(u8) {
+  ERR, // ERROR
+  NUM, // NUMBER
+  TRU, // TRUE
+  FAL, // FALSE
+  NAM, // NAME
+  ADD, // ADD
+  SUB, // SUBTRACT
+  MUL, // MULTILPLY
+  DIV, // DIVIDE
+  MOD, // MODULO
+  EOF, // END OF FILE
+  
+  // const Self = @This();
+  
+  pub fn to_str(self: OPCode) []const u8 {
+    return @tagName(self);
+  }
 };
 
-pub const SyntaxNode = Node;
+pub const OPCodes = ArrayList(OPCode);
 
-pub const Nodes = ArrayList(Node);
-
-// Parsers make an AST? from a series of Tokens found in a Lexer
-// So a Lexer is important. It gives us raw tokens. Here we make some sense
+// Parsers make an AST? from a series of Tokens found in a Scanner
+// So a Scanner is important. It gives us raw tokens. Here we make some sense
 // of things, and put together some raw source code.
 // Compiler takes AST and makes chunks of OpCodes.
 pub const Parser = struct {
-    lexer: Lexer,
+    scanner: Scanner,
     source: []const u8,
     current: usize = 0,
-    // previous: usize = 0,
-    // hadError: bool = false,
-    // panic: bool = false,
+    previous: usize = 0,
+    bytecode: OPCodes,
 
     const Self = @This();
 
     pub fn init(allocator: Allocator, source: []const u8) !Parser {
-        const lexer = try Lexer.init(allocator, source);
+        const scanner = try Scanner.init(allocator, source);
         return .{
-            .lexer = lexer,
+            .scanner = scanner,
             .source = source,
+            .bytecode = OPCodes.init(allocator),
         };
     }
     
     pub fn deinit(self: *Self) void {
-        self.lexer.deinit();
+        self.scanner.deinit();
     }
     
     // Helper function to get tokens.
     pub fn tokens(self: *Self) *Tokens {
-        return &self.lexer.tokens;
+        return &self.scanner.tokens;
     }
 
     pub fn isAtEnd(self: *Self) bool {
         return self.current == self.tokens().items.len;
+    }
+    
+    // returns the current token as a token.
+    pub fn currentToken(self: *Self) *Token {
+      return self.tokenAt(self.current);
     }
 
     // Gets the token at an index,
     // but doesn't get the token if the index is greater than, or equal to
     // the length of the tokens list.
     // Returns a reference.
-    pub fn tokenAt(self: *Self, index: usize) *const Token {
+    pub fn tokenAt(self: *Self, index: usize) *Token {
         if (index >= self.tokens().items.len) {
             return &self.tokens().getLast();
         }
         return &self.tokens().items[index];
     }
 
-    pub fn advance(self: *Self) *const Token {
-        defer self.current += 1;
-        return self.tokenAt(self.current);
+    pub fn advance(self: *Self) *Token {
+        if (!self.isAtEnd()) {
+            self.current += 1;
+        }
+        return self.tokenAt(self.previous);
     }
 
+    pub fn previousToken(self: *Self) *Token {
+        return self.tokenAt(self.previous);
+    }
     pub fn peek(self: *Self) *Token {
         return self.tokenAt(self.current);
     }
@@ -132,73 +131,50 @@ pub const Parser = struct {
     pub fn peekNextNext(self: *Self) *Token {
         return self.tokenAt(self.current + 2);
     }
+    
+    /// Error functions
+    pub fn errorr(self: *Self, message: []const u8) void {
+      self.errorAt(self.tokenAt(self.previous), message);
+    }
+    
+    pub fn errorAtCurrent(self: *Self, message: []const u8) void {
+      self.errorAt(self.currentToken(), message);
+    }
+    
+    pub fn errorAt(self:*Self, token: *Token, message: []const u8) !void {
+      if (self.panicMode) { return; }
+      self.panicMode = true;
+      std.debug.print("[line {d}] Error", .{token.line});
+      
+      switch (token.type) {
+          TokenType.EOF => std.debug.print(" at end", .{}),
+          TokenType.err => {},
+          else => {
+              std.debug.print(" at\n", .{token.line});
+              std.debug.print(" at '%s'", .{token.literal});
+          },
+      }
+    
+      std.debug.print(": %s\n", .{message});
+    }
 
     /// Parsing functions
-
-    pub fn grouping(self: *Self) void {
-        self.expression();
-        self.consume(.leftParen, "Expect ')' after expression");
-    }
-
-    pub fn consume(self: *Self, typ: Token.Type, message: []const u8) void {
-        if (self.current.type == typ) {
-            self.advance();
-            return;
-        }
-        self.errorAtCurrent(message);
-    }
-
-    pub fn check(self: *Self, typ: Token.Type) bool {
-        return self.current.type == typ;
-    }
-
-    pub fn match(self: *Self, types: [Token.Type]) bool {
-        if (!self.check(typ)) {
-            return false;
-        }
-        self.advance();
-        return true;
-    }
     
-    const BANG_EQUAL = Token.Type.equal;
-    const EQUAL_EQUAL = Token.Type.equal;
-    
-    pub fn equality(self: *Self) Node {
-        var expr = comparison()
-        const sequence = [_]token{ BANG_EQUAL, EQUAL_EQUAL, 6 };
-        while (match(BANG_EQUAL, EQUAL_EQUAL)) {
-            const operator = previous();
-            const right = comparision();
-            expr = Node.Binary(expr, operator, right);
-        }
-        
-        return expr;
-    }
-    
-    pub fn expression(self: *Self) Node {
-        return equality();
-        // self.parsePrecedence(.assignment);
-    }
+    // pub fn putter(self: *Self) void {
+    //   puts("current: {d}\n", .{self.current});
+    // }
     
     // parse() represents not just the start of the parsing party,
     // but also the entry to our recursive structures. We use the
     // base token types to enter unique functions that parse out
     // the more complex grammar.
     pub fn parse(self: *Self) bool {
-        while (!self.isAtEnd()) {
-            const t = self.advance();
-            switch (t.type) {
-                .name => {},
-                .number => {},
-                .newline => {},
-                .keyword => {},
-                .comment => {},
-                else => {
-                    continue;
-                },
-            }
-        }
-        return true;
+      // std.debug.print("We are parsing...", .{});
+      std.debug.print("\nWe are parsing...\n", .{});
+
+      // self.putter();
+      _ = self;
+      return true;
     }
 
     // currentChunk
@@ -281,39 +257,4 @@ pub const Parser = struct {
 //     pub fn getRule(self: *Self, typ: Token.type) *ParseFn {
 //         return &self.rules[typ];
 //     }
-
-    // error utilities
-//     pub fn errorAt(self: *Self, token: *Token, message: []const u8) !void {
-//         if (self.panicMode) {
-//             return;
-//         }
-//         self.panicMode = true;
-//         puts("[line {d}] Error", .{token.line});
-//
-//         switch (token.type) {
-//             Token.Type.eof => puts(" at end", .{}),
-//             Token.Type.err => {},
-//             else => {
-//                 puts(" at\n", .{token.line});
-//                 puts(" at '%s'", .{token.literal});
-//             },
-//         }
-//
-//         puts(": %s\n", .{message});
-//     }
-//
-//     pub fn errorr(self: *Self, message: []const u8) void {
-//         self.errorAt(&self.previous, message);
-//     }
-//
-//     pub fn errorAtCurrent(self: *Self, message: []const u8) void {
-//         self.errorAt(&self.current, message);
-//     }
 };
-
-// # AST
-// The AST separates between scope, names, files, etc...
-// Each Chunk belongs to a scope. A scope of 0 means it's
-// a file, A global Chunk. Each chunk has a filename too.
-// Recompilation of an AST from the same file overwrites
-// existing definitions in the Global Scope.
