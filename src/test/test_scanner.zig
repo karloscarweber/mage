@@ -1,44 +1,20 @@
-const lx = @import("../scanner.zig");
-const Scanner = lx.Scanner;
-const Token = lx.Token;
-// const String = lx.String;
-
 const std = @import("std");
 const builtin = @import("builtin");
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
 const testing = std.testing;
-const print = std.debug.print;
-// const printer = @import("../printer.zig");
-// const puts = printer.puts;
-
-// String comparison helper.
-pub const String = struct {
-    pub fn is_eq(str1: []const u8, str2: []const u8) bool {
-        return std.mem.eql(u8, str1, str2);
-    }
-};
-
-// TESTS
+const allocator = testing.allocator;
 const expect = testing.expect;
+const print = std.debug.print;
 
-// returns some tokens for tests.
-fn ts_some_tokens() Token {
-    const token: Token = Token{
-        .type = Token.Type.name,
-        .start = 15,
-        .length = 2,
-        .line = 1,
-    };
-    return token;
-}
+const lx = @import("../scanner.zig");
+const Scanner = lx.Scanner;
+const Token = lx.Token;
 
 const small_source_code = "hello friends!";
 
-// Test Scanner fucntiosn
-// Scanner.isAtEnd()
 test "Scanner functions" {
-    var scanner = try Scanner.init(testing.allocator, small_source_code);
+    var scanner = try Scanner.init(allocator, small_source_code);
     defer scanner.deinit();
     try expect(!scanner.isAtEnd());
     try expect(scanner.peek() == 'h');
@@ -50,7 +26,7 @@ test "Scanner functions" {
 }
 
 test "skips whitespace" {
-    var scanner = try Scanner.init(testing.allocator, "  hello");
+    var scanner = try Scanner.init(allocator, "  hello");
     defer scanner.deinit();
 
     try scanner.skipWhitespace();
@@ -71,24 +47,14 @@ const big_source_code =
 ;
 
 test "scanner scans source code" {
-    var scanner = try Scanner.init(testing.allocator, small_source_code);
+    var scanner = try Scanner.init(allocator, small_source_code);
     defer scanner.deinit();
     try scanner.scan();
     // try debugScanner(&scanner);
 
-    var bigScanner = try Scanner.init(testing.allocator, big_source_code);
+    var bigScanner = try Scanner.init(allocator, big_source_code);
     defer bigScanner.deinit();
     try bigScanner.scan();
-
-    // try debugScanner(&bigScanner);
-
-    // try expect(!scanner.isAtEnd());
-    // try expect(scanner.peek() == 'h');
-    // try expect(scanner.advance() == 'h');
-    // try expect(scanner.advance() == 'e');
-    // try expect(scanner.advance() == 'l');
-    // try expect(scanner.peek() == 'l');
-    // try expect(!scanner.isAtEnd());
 }
 
 const other_source_code =
@@ -106,7 +72,7 @@ const other_source_code =
 ;
 
 test "scanner scans more code" {
-    var scanner = try Scanner.init(testing.allocator, other_source_code);
+    var scanner = try Scanner.init(allocator, other_source_code);
     defer scanner.deinit();
     try scanner.scan();
 
@@ -117,4 +83,16 @@ test "scanner scans more code" {
         debugScanner(&scanner);
         print("[ERROR]: Incorrect number of tokens. Found {d}, expected: {d}.\n", .{ scanner.tokens.items.len, tokenNumber });
     };
+}
+
+test "can end in numbers" {
+  var scanner = try Scanner.init(allocator, "Hello Friends 15");
+  try scanner.scan();
+  defer scanner.deinit();
+}
+
+test "can end in hex numbers" {
+  var scanner = try Scanner.init(allocator, "Hello Friends 0xAB");
+  try scanner.scan();
+  defer scanner.deinit();
 }

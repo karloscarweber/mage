@@ -10,9 +10,6 @@ const Allocator = std.mem.Allocator;
 const testing = std.testing;
 const print = std.debug.print;
 
-// var gpa = std.heap.GemeralPurposeAllocator(.{}){};
-// const allogator = gpa.allocator();
-
 pub const Token = struct {
     type: Type,
     start: usize,
@@ -102,12 +99,19 @@ pub const Scanner = struct {
     // checks to see if the pointer to the current
     // character is the last character or not.
     pub fn isAtEnd(self: *Self) bool {
-        return (self.current >= self.source.len - 1);
+        return !(self.current < self.source.len);
     }
 
     // returns a legit character, or the EOF null terminating byte.
     fn charAt(self: *Self, index: usize) u8 {
-        return self.source[index];
+        if (index < self.source.len) {
+            return self.source[index];
+        }
+        return self.lastChar();
+    }
+    
+    fn lastChar(self: *Self) u8 {
+      return self.source[self.source.len - 1];
     }
 
     // peek looks at the char at current
@@ -204,7 +208,11 @@ pub const Scanner = struct {
             }
         } else {
             // Not Hex Number
-            while (self.peek() == '.' or self.peek() == '_' or Char.isDigit(self.peek())) {
+            while (
+              (self.peek() == '.'
+              or self.peek() == '_'
+              or Char.isDigit(self.peek()))
+              and !self.isAtEnd()) {
                 _ = self.advance();
             }
         }

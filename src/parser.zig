@@ -63,23 +63,33 @@ pub const OPCodes = ArrayList(OPCode);
 
 // Parsers make an AST? from a series of Tokens found in a Scanner
 // So a Scanner is important. It gives us raw tokens. Here we make some sense
-// of things, and put together some raw source code.
-// Compiler takes AST and makes chunks of OpCodes.
+// of things, and put together some raw source code. Compiler takes AST and
+// makes chunks of OpCodes. In our case, our parser is making those opcodes.
+// Kona's interpreter has two modes:, dynamic, and optimized. This Parser spits
+// out dynamic OPCodes. The Compiler is more like a JIT compiler, It will
+// interpret and optimize our dynamic opcode data as our program runs, and rewrite
+// those operations to be Harder, Better, Faster, Stronger.
 pub const Parser = struct {
+    vm: MageVM,
     scanner: Scanner,
     source: []const u8,
     current: usize = 0,
     previous: usize = 0,
+    numParens: usize = 0,
+    hasError: bool = false,
     bytecode: OPCodes,
+    allocator: Allocator,
 
     const Self = @This();
 
     pub fn init(allocator: Allocator, source: []const u8) !Parser {
-        const scanner = try Scanner.init(allocator, source);
+        var scanner = try Scanner.init(allocator, source);
+        try scanner.scan();
         return .{
             .scanner = scanner,
             .source = source,
             .bytecode = OPCodes.init(allocator),
+            .allocator = allocator,
         };
     }
     
@@ -88,8 +98,8 @@ pub const Parser = struct {
     }
     
     // Helper function to get tokens.
-    pub fn tokens(self: *Self) *Tokens {
-        return &self.scanner.tokens;
+    pub fn tokens(self: *Self) Tokens {
+        return self.scanner.tokens;
     }
 
     pub fn isAtEnd(self: *Self) bool {
@@ -97,7 +107,7 @@ pub const Parser = struct {
     }
     
     // returns the current token as a token.
-    pub fn currentToken(self: *Self) *Token {
+    pub fn currentToken(self: *Self) Token {
       return self.tokenAt(self.current);
     }
 
@@ -105,30 +115,28 @@ pub const Parser = struct {
     // but doesn't get the token if the index is greater than, or equal to
     // the length of the tokens list.
     // Returns a reference.
-    pub fn tokenAt(self: *Self, index: usize) *Token {
-        if (index >= self.tokens().items.len) {
-            return &self.tokens().getLast();
+    pub fn tokenAt(self: *Self, index: usize) Token {
+        if (index < self.tokens().items.len) {
+            return self.tokens().items[index];
         }
-        return &self.tokens().items[index];
+        
+        return self.tokens().getLast();
     }
-
-    pub fn advance(self: *Self) *Token {
-        if (!self.isAtEnd()) {
-            self.current += 1;
-        }
+    
+    pub fn advance(self: *Self) Token {
+        defer self.current += 1;
         return self.tokenAt(self.previous);
     }
-
-    pub fn previousToken(self: *Self) *Token {
+    pub fn previousToken(self: *Self) Token {
         return self.tokenAt(self.previous);
     }
-    pub fn peek(self: *Self) *Token {
+    pub fn peek(self: *Self) Token {
         return self.tokenAt(self.current);
     }
-    pub fn peekNext(self: *Self) *Token {
+    pub fn peekNext(self: *Self) Token {
         return self.tokenAt(self.current + 1);
     }
-    pub fn peekNextNext(self: *Self) *Token {
+    pub fn peekNextNext(self: *Self) Token {
         return self.tokenAt(self.current + 2);
     }
     
@@ -160,21 +168,82 @@ pub const Parser = struct {
 
     /// Parsing functions
     
-    // pub fn putter(self: *Self) void {
-    //   puts("current: {d}\n", .{self.current});
-    // }
+    fn printError(self: *Self, label: []const u8, comptime format: []const u8, args: anytype) !void {
+      const al = self.allocator;
+      self.parser.hasError = true;
+      if (!self.parser.printErrors) return;
+      
+      const error_message = try std.fmt.allocPrint(al, format, args);
+      defer al.free(error_message);
+      
+      const mod_name = "Main";
+      
+      const message = try std.fmt.allocPrint(al, "{s}-{s}:{s}", .{label, mod_name,error_message});
+      defer al.free(message);
+      
+      std.debug.print("\n{s}\n", .{message});
+    }
+    
+    // Output a lexical error. That's an error where what the programmer wrote,
+    // is clearly wrong. How dare you.
+    fn lexError(self: *Self, comptime format: []const u8, args: anytype) void {
+      
+      // print error
+      self.printError("Error", format, args) catch {
+        
+      };
+      
+    }
+    
+    // If we encounter a name,
+    fn name(self: *Self) {
+      // check for the name in the
+      
+    }
     
     // parse() represents not just the start of the parsing party,
     // but also the entry to our recursive structures. We use the
     // base token types to enter unique functions that parse out
     // the more complex grammar.
-    pub fn parse(self: *Self) bool {
-      // std.debug.print("We are parsing...", .{});
-      std.debug.print("\nWe are parsing...\n", .{});
-
-      // self.putter();
-      _ = self;
-      return true;
+    pub fn parse(self: *Self) !void {
+      
+      
+      
+      
+      while (!self.isAtEnd()) {
+        
+        if (self.isAtEnd()) {
+          break;
+        }
+        
+        const t = self.advance();
+    
+        switch (t.type) {
+          .name => self.name(),
+          // ')' => self.push(.rightParen),
+          // '{' => self.push(.leftBrace),
+          // '}' => self.push(.rightBrace),
+          // '[' => self.push(.leftBracket),
+          // ']' => self.push(.rightBracket),
+          // '-' => self.push(.minus),
+          // '+' => self.push(.plus),
+          // '*' => self.push(.star),
+          // '/' => {
+          //     if (self.peek() == '/') {
+          //         continue;
+          //     }
+          // },
+          // '%' => self.push(.modulo),
+          // '!' => {
+          //     if (self.peek() == '=') {
+          //         _ = self.advance();
+          //         self.push(.bang_equal);
+          //     } else {
+          //         self.push(.not);
+          //     }
+          // },
+        }
+      }
     }
 
     // currentChunk
