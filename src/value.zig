@@ -103,17 +103,3 @@ pub const Value = struct {
 };
 
 pub const Values = ArrayList(Value);
-
-pub const ValueArray = struct {
-    capacity: usize,
-    count: usize,
-    values: Values,
-    
-    pub fn init(allocator: Allocator) !ValueArray {
-        return .{
-            .capacity =  0,
-            .count =  0,
-            .values =  Values.init(allocator),
-        };
-    }
-};

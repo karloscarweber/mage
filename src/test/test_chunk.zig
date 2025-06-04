@@ -10,16 +10,29 @@ const chk = @import("../chunk.zig");
 const Chunk = chk.Chunk;
 const Op = chk.Op;
 
-test "Scanner functions" {
+const vl = @import("../value.zig");
+const Value = vl.Value;
+
+test "Basic Chunk Functions" {
     var chunk = try Chunk.init(allocator);
     defer chunk.deinit();
     try chunk.write(Op.RETURN);
-    try expect(chunk.count() == 1);
+    try expect(chunk.code.items.len == 1);
     
-    expect(@intFromEnum(Op.RETURN) == 24) catch {
-      const operation: Op = @enumFromInt(24);
-      print("Wrong Token; Found [{s}], expected: [{s}].\n", .{ Op.RETURN.to_str(), operation.to_str()});
+    const operation: u8 = 0x17;
+    expect(Op.RETURN == operation) catch {
+      print("Wrong Token; Found [{s}], expected: [{s}].\n", .{ Op.to_str(Op.RETURN), Op.to_str(operation)});
     };
     
     chunk.disassemble("app.kona");
+}
+
+test "Adding Constants" {
+  var chunk = try Chunk.init(allocator);
+  defer chunk.deinit();
+  const aNumber = Value.new.NUMBER(15);
+  const constant = try chunk.addConstant(aNumber);
+  try chunk.write(Op.constant);
+  const tt: u8 = @truncate(constant);
+  try chunk.write(tt);
 }
