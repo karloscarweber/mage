@@ -12,6 +12,7 @@
 // copies the value. Functions are reference types.
 
 const std = @import("std");
+const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const objects = @import("object.zig");
@@ -58,6 +59,25 @@ pub const Value = struct {
             return Value.init(.{.obj = obj}, .val_obj);
         }
     };
+    
+    pub fn to_str(self: *Self) []const u8 {
+      if (self.type == ValueType.val_num) {
+        const str = std.fmt.allocPrint(std.heap.page_allocator, "{d}", .{ self.as.num }) catch {
+          return "For some reason we have an error.";
+        };
+        return str;
+      } else {
+        return "Cannot print this value type yet.";
+      }
+    }
+    
+    pub fn notPrint(self: *Self) void {
+      if (self.type == ValueType.val_num) {
+        print("{}", .{self.as.num});
+      } else {
+        print("Cannot print this value type yet.");
+      }
+    }
 
     // value.isBool(), or .isNumber(), returns true or false statement thingys
     pub fn isBool(self: Self) bool {

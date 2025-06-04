@@ -24,15 +24,16 @@ test "Basic Chunk Functions" {
       print("Wrong Token; Found [{s}], expected: [{s}].\n", .{ Op.to_str(Op.RETURN), Op.to_str(operation)});
     };
     
-    chunk.disassemble("app.kona");
+    chunk.disassemble("app.mage");
 }
 
 test "Adding Constants" {
   var chunk = try Chunk.init(allocator);
   defer chunk.deinit();
-  const aNumber = Value.new.NUMBER(15);
-  const constant = try chunk.addConstant(aNumber);
+  
+  const constant_index = try chunk.addConstant(Value.new.NUMBER(25));
   try chunk.write(Op.constant);
-  const tt: u8 = @truncate(constant);
-  try chunk.write(tt);
+  try chunk.write(constant_index);
+  
+  chunk.disassemble("app.mage");
 }

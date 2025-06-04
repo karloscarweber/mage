@@ -74,16 +74,27 @@ pub const Op = struct {
     
   };
   
-  pub fn disassemble(operation: u8) void {
-    if (operation == Op.RETURN) {
-      Op.simpleInstruction(operation);
-    } else {
-      print("unknown opcode {X} : {d}\n", .{operation, operation});
-    }
+  pub fn disassemble(chunk: *Chunk, operation: u8, index: usize) bool {
+    return switch (operation) {
+        Op.constant => Op.constantInstruction(chunk, operation, index),
+        Op.RETURN => Op.simpleInstruction(operation),
+        else => {
+          print("unknown opcode {X} : {d}\n", .{operation, operation});
+          return false;
+        },
+    };
   }
   
-  pub fn simpleInstruction(operation: u8) void {
+  pub fn constantInstruction(chunk: *Chunk, operation: u8, index: usize) bool {
+    const constant_index = chunk.*.code.items[index + 1];
+    var jfjfjf = chunk.*.constants.items[constant_index];
+    print("0x{X}  {s}: {s}\n", .{operation, OPS.to_str(operation), jfjfjf.to_str()});
+    return true;
+  }
+  
+  pub fn simpleInstruction(operation: u8) bool {
     print("0x{X}  {s}\n", .{operation, OPS.to_str(operation)});
+    return false;
   }
   
 };
@@ -114,16 +125,21 @@ pub const Chunk = struct {
     try self.code.append(byte);
   }
   
-  pub fn addConstant(self: *Self, value: Value) !usize {
+  pub fn addConstant(self: *Self, value: Value) !u8 {
     try self.constants.append(value);
-    return self.constants.items.len - 1;
+    // we're casting this down to a u8, as we're storing the index
+    // of this constant in our bytecode, and our bytecode is bytes.
+    const truncated_index: u8 = @truncate(self.constants.items.len - 1);
+    return truncated_index;
   }
   
   // debugger methods
   pub fn disassemble(self: *Self, name: []const u8) void {
     print("\n== {s} ==\n", .{name});
-    for (self.code.items) |code| {
-        Op.disassemble(code);
+    var skipNext = false;
+    for (0.., self.code.items) |index, code| {
+        if (skipNext) { continue; }
+        skipNext = Op.disassemble(self, code, index);
     }
   }
 
