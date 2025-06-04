@@ -1,43 +1,91 @@
 const std = @import("std");
 const scn = @import("scanner.zig");
 const Scanner = scn.Scanner;
+const Allocator = std.mem.Allocator;
+const ArrayList = std.ArrayList;
+const print = std.debug.print;
 
-pub const OpCode = enum {
-    // expressions
-    op_constant,
-    op_name,
-    op_true,
-    op_false,
-    op_pop,
-    op_get_local,
-    op_set_local,
-    op_get_global,
-    op_set_global,
-    op_equal,
-    op_greater,
-    op_less,
-    op_add,
-    op_subtract,
-    op_divide,
-    op_multiply,
-    op_mod,
-    op_jump,
-    op_jump_if_false,
-    op_loop,
-    op_call,
-    op_closure,
-    op_closure_upvalue,
-    op_return,
-    op_range,
-
-    pub fn to_str(self: Type) []const u8 {
-        return @tagName(self);
+pub const Op = enum(u8) {
+  // expressions
+  constant,
+  name,
+  TRUE,
+  FALSE,
+  pop,
+  get_local,
+  set_local,
+  get_global,
+  set_global,
+  equal,
+  greater,
+  less,
+  add,
+  subtract,
+  divide,
+  multiply,
+  mod,
+  jump,
+  jump_if_false,
+  loop,
+  call,
+  closure,
+  closure_upvalue,
+  range,
+  RETURN,
+  
+  pub fn int(self: Op) u8 {
+    return @intFromEnum(self);
+  }
+  
+  pub fn to_str(self: Op) []const u8 {
+    return @tagName(self);
+  }
+  
+  pub fn disassemble(self: Op) void {
+    if (self == Op.RETURN) {
+      self.simpleInstruction();
+    } else {
+      print("unknown opcode {s}\n", .{self.to_str()});
     }
+  }
+  pub fn simpleInstruction(self: Op) void {
+    print("{s}\n", .{self.to_str()});
+  }
 };
 
+const OpCode = Op;
+const Code = ArrayList(OpCode);
+
 pub const Chunk = struct {
-    count: usize,
-    capacity: usize,
-    scanner: Scanner,
-    name: []const u8,
+  allocator: Allocator,
+  code: Code,
+  
+  const Self = @This();
+  pub fn init(allocator: Allocator) !Chunk {
+    return .{
+      .code = Code.init(allocator),
+      .allocator = allocator
+    };
+  }
+  
+  pub fn deinit(self: *Self) void {
+    self.code.deinit();
+  }
+  
+  pub fn count(self: *Self) usize {
+    return self.code.items.len;
+  }
+  
+  pub fn write(self: *Self, byte: Op) !void {
+    try self.code.append(byte);
+  }
+  
+  // debugger methods
+  pub fn disassemble(self: *Self, name: []const u8) void {
+    print("\n== {s} ==\n", .{name});
+    for (self.code.items) |code| {
+        code.disassemble();
+    }
+  }
+
 };

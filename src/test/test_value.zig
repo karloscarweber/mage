@@ -3,7 +3,6 @@ const Value = vl.Value;
 
 const std = @import("std");
 const builtin = @import("builtin");
-const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
 const testing = std.testing;
 const print = std.debug.print;

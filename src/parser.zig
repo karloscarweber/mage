@@ -20,24 +20,6 @@ const GREATER_EQUAL = Token.Type.greater_equal;
 const LESS = Token.Type.less;
 const LESS_EQUAL = Token.Type.less_equal;
 
-pub const Precedence = enum {
-    NONE,
-    ASSIGNMENT,
-    OR,
-    AND,
-    EQUALITY,
-    COMPARISON,
-    TERM,
-    FACTOR,
-    UNARY,
-    CALL,
-    PRIMARY,
-
-    pub fn to_str(self: Precedence) []const u8 {
-        return @tagName(self);
-    }
-};
-
 // opcodes
 pub const OPCode = enum(u8) {
   ERR, // ERROR
@@ -195,10 +177,62 @@ pub const Parser = struct {
       
     }
     
-    // If we encounter a name,
-    fn name(self: *Self) {
-      // check for the name in the
+    // Grammar
+    
+    const Precedence = enum {
+        NONE,
+        ASSIGNMENT,    // =
+        CONDITIONAL,   // ?:
+        OR,            // ||, or
+        AND,           // &&, and
+        EQUALITY,      // == !=
+        COMPARISON,    // < > <= >=
+        TERM,          // + -
+        FACTOR,        // * / %
+        UNARY,         // unary - ! ~
+        CALL,          // . () []
+        PRIMARY,
+    
+        pub fn to_str(self: Precedence) []const u8 {
+            return @tagName(self);
+        }
+    };
+    
+    // Shuffles the tokens along and stores it in
+    // parser.next
+    fn nextToken(self: *Self) void {
+      // shuffles the tokens along.
+      self.previous = self.curerent;
+      self.current = self.next;
       
+      if (self.next.type == .EOF) { return; }
+      if (self.current.type == .EOF) { return; }
+      
+      while(self.peekToken() != Token.EOF) {
+        self.tokenStart = self.currentToken;
+        
+        const c = self.nextChar
+        
+      }
+      
+      
+    }
+    
+    //
+    fn parsePresedence(precedence: Precedence) void {
+      // next Token
+      var prefix: GrammarFn = rules[self.previous.type].prefix;
+      
+      // if (prefix == undefined) {
+      //   error("expected expression.");
+      //   return
+      // }
+      
+    }
+    
+    // expressions, when resolved, put a value onto the stack
+    fn expression(self: *Self) void {
+      self.parsePresedence(Precedence.NONE)
     }
     
     // parse() represents not just the start of the parsing party,
@@ -206,9 +240,6 @@ pub const Parser = struct {
     // base token types to enter unique functions that parse out
     // the more complex grammar.
     pub fn parse(self: *Self) !void {
-      
-      
-      
       
       while (!self.isAtEnd()) {
         
