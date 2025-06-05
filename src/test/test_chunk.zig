@@ -16,7 +16,7 @@ const Value = vl.Value;
 test "Basic Chunk Functions" {
     var chunk = try Chunk.init(allocator);
     defer chunk.deinit();
-    try chunk.write(Op.RETURN);
+    try chunk.write(Op.RETURN, 123);
     try expect(chunk.code.items.len == 1);
     
     const operation: u8 = 0x17;
@@ -32,8 +32,16 @@ test "Adding Constants" {
   defer chunk.deinit();
   
   const constant_index = try chunk.addConstant(Value.new.NUMBER(25));
-  try chunk.write(Op.constant);
-  try chunk.write(constant_index);
+  try chunk.write(Op.constant, 123);
+  try chunk.write(constant_index, 123);
   
+  const other_index = try chunk.addConstant(Value.new.NUMBER(99));
+  try chunk.write(Op.constant, 123);
+  try chunk.write(other_index, 123);
+  
+  const whatever = try chunk.addConstant(Value.new.NUMBER(2));
+  try chunk.write(Op.constant, 123);
+  try chunk.write(whatever, 123);
+    
   chunk.disassemble("app.mage");
 }

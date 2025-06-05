@@ -101,10 +101,12 @@ pub const Op = struct {
 
 const OpCode = u8;
 const Code = ArrayList(OpCode);
+const Lines = ArrayList(u8);
 
 pub const Chunk = struct {
   allocator: Allocator,
   code: Code,
+  lines: Lines,
   constants: Values,
   
   const Self = @This();
@@ -112,17 +114,20 @@ pub const Chunk = struct {
     return .{
       .allocator = allocator,
       .code = Code.init(allocator),
+      .lines = Lines.init(allocator),
       .constants = Values.init(allocator),
     };
   }
   
   pub fn deinit(self: *Self) void {
     self.code.deinit();
+    self.lines.deinit();
     self.constants.deinit();
   }
   
-  pub fn write(self: *Self, byte: u8) !void {
+  pub fn write(self: *Self, byte: u8, line: u8) !void {
     try self.code.append(byte);
+    try self.lines.append(line);
   }
   
   pub fn addConstant(self: *Self, value: Value) !u8 {
@@ -138,9 +143,17 @@ pub const Chunk = struct {
     print("\n== {s} ==\n", .{name});
     var skipNext = false;
     for (0.., self.code.items) |index, code| {
-        if (skipNext) { continue; }
+        if (skipNext) {
+          skipNext = false;
+          continue;
+        }
+        print("{d:0>4} ", .{index});
+        if (index > 0 and self.lines.items[index] == self.lines.items[index - 1]) {
+          print("   | ", .{});
+        } else {
+          print("{d: >4} ", .{self.lines.items[index]});
+        }
         skipNext = Op.disassemble(self, code, index);
     }
   }
-
 };
