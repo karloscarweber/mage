@@ -68,7 +68,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
 
     const exe_unit_tests = b.addTest(.{
@@ -76,7 +75,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
 
     // Similar to creating the run step earlier, this exposes a `test` step to
@@ -85,4 +83,13 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("tests", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
     test_step.dependOn(&run_exe_unit_tests.step);
+    
+    // individual unit tests
+    const vm_test_step = b.step("test:vm", "Tests the vm.zig file through src/test/test_vm.zig");
+    const vm_unit_tests = b.addTest(.{
+        .root_source_file = b.path("src/vm.zig"), .target = target, .optimize = optimize,
+    });
+    const run_vm_unit_tests = b.addRunArtifact(vm_unit_tests);
+    vm_test_step.dependOn(&run_lib_unit_tests.step);
+    vm_test_step.dependOn(&run_vm_unit_tests.step);
 }

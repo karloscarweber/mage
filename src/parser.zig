@@ -211,7 +211,7 @@ pub const Parser = struct {
       while(self.peekToken() != Token.EOF) {
         self.tokenStart = self.currentToken;
         
-        const c = self.nextChar
+        // const c = self.nextChar
         
       }
       
