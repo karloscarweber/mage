@@ -15,3 +15,4 @@ Run `zig run src/main.zig`. or `zig build run`. Or when things get hairy and it 
 
 ## Running the tests
 Run `zig build tests` to run the tests. Add a file to the tests by importing it into `tests.zig`. Run an individual file: `zig test src/filename.zig`. Alternatively we have short hands for the unit tests: `zig build test:vm`, to build tests just for the VM.
+

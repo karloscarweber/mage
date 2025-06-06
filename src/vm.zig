@@ -7,6 +7,7 @@ const vl = @import("value.zig");
 const Value = vl.Value;
 const print = std.debug.print;
 const Allocator = std.mem.Allocator;
+const debug = @import("build_options").debug;
 
 const InterpretResult = enum {
   OK,
@@ -79,14 +80,22 @@ pub const MageVM = struct {
     var instruction: u8 = undefined;
     var response = InterpretResult.OK;
     
-    while (self.ip  < self.il) {
+    while (self.ip < self.il) {
       instruction = self.read_byte();
+      
+      if (debug) {
+        _ = Op.disassemble(self.chunk, instruction, self.ip-1);
+      }
       
       switch (instruction) {
         Op.constant => {
-          var constant = self.read_constant();
-          const str = constant.to_str();
-          print("{s}\n", .{str});
+          if (debug) {
+            _ = self.read_constant();
+            // const str = constant.to_str();
+            // print("{s}\n", .{str});
+          } else {
+            _ = self.read_constant();
+          }
         },
         Op.RETURN => {
           response = InterpretResult.OK;

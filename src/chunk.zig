@@ -87,8 +87,8 @@ pub const Op = struct {
   
   pub fn constantInstruction(chunk: *Chunk, operation: u8, index: usize) bool {
     const constant_index = chunk.*.code.items[index + 1];
-    var jfjfjf = chunk.*.constants.items[constant_index];
-    print("0x{X}  {s}: {s}\n", .{operation, OPS.to_str(operation), jfjfjf.to_str()});
+    var const_value = chunk.*.constants.items[constant_index];
+    print("0x{X}  {s}: {s}\n", .{operation, OPS.to_str(operation), const_value.to_str()});
     return true;
   }
   
