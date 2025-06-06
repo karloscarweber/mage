@@ -19,7 +19,7 @@ const Instruction = u8;
 pub const MageVM = struct {
   stack: []u8 = undefined,
   chunk: *Chunk = undefined,
-  ip: [*]Instruction = undefined, // instruction pointer, pointer to an u8 instruction that is about to be executed
+  ip: *[]Instruction = undefined, // instruction pointer, pointer to an u8 instruction that is about to be executed
   mode: Mode = undefined,
   allocator: std.mem.Allocator,
   
@@ -51,8 +51,8 @@ pub const MageVM = struct {
   
   pub fn interpret(self: *Self, chunk: *Chunk) InterpretResult {
     self.chunk = chunk;
-    self.ip = &self.chunk.code;
-    return run();
+    self.ip = &self.chunk.code.items;
+    return self.run();
   }
   
   inline fn read_constant(self: MageVM) Value {
@@ -64,10 +64,10 @@ pub const MageVM = struct {
     return self.ip;
   }
   
-  fn run(self: *Self) void {
+  fn run(self: *Self) InterpretResult {
     var instruction: u8 = undefined;
     while (true == true) {
-      instruction = read_byte(self).*;
+      instruction = read_byte(self.*).*;
       
       switch (instruction) {
         Op.constant => {
@@ -82,6 +82,8 @@ pub const MageVM = struct {
       }
       
     }
+    
+    return InterpretResult.OK;
   }
   
 };
