@@ -1,10 +1,12 @@
 const std = @import("std");
+const ArrayList = std.ArrayList;
 const builtin = @import("builtin");
 const ck = @import("chunk.zig");
 const Chunk = ck.Chunk;
 const Op = ck.Op;
 const vl = @import("value.zig");
 const Value = vl.Value;
+const printValue = vl.printValue;
 const print = std.debug.print;
 const Allocator = std.mem.Allocator;
 const debug = @import("build_options").debug;
@@ -16,9 +18,13 @@ const InterpretResult = enum {
 };
 
 const Instruction = u8;
+const STACK_MAX = 256;
+const Stack = ArrayList(Value);
 
 pub const MageVM = struct {
-  stack: []u8 = undefined,
+  stack: Stack,
+  
+  // Pointer to the chunk we're currently iterating through.
   chunk: *Chunk = undefined,
   // instruction pointer, pointer to an u8 instruction that is about to be executed
   // in our case, we're just using a usize as an index to the a chunks:
@@ -29,24 +35,6 @@ pub const MageVM = struct {
   mode: Mode = undefined,
   allocator: std.mem.Allocator,
   
-  const Self = @This();
-  
-  pub fn init(allocator: Allocator) MageVM {
-    return .{
-      .stack = undefined,
-      .mode = Mode.mac,
-      .allocator = allocator,
-    };
-  }
-  
-  pub fn deinit(self: *Self) void {
-    self.stack = undefined;
-    self.chunk = undefined;
-    self.ip = undefined;
-    self.mode = undefined;
-    self.mode = undefined;
-  }
-  
   // Which mode we're running our interpreter in.
   const Mode = enum {
     web,
@@ -55,11 +43,42 @@ pub const MageVM = struct {
     linux,
   };
   
+  const Self = @This();
+  
+  pub fn init(allocator: Allocator) MageVM {
+    return .{
+      .stack = Stack.init(allocator),
+      .mode = Mode.mac,
+      .allocator = allocator,
+    };
+  }
+  
+  pub fn deinit(self: *Self) void {
+    self.stack.deinit();
+    self.chunk = undefined;
+    self.ip = undefined;
+    self.mode = undefined;
+    self.mode = undefined;
+  }
+  
+  pub fn resetStack(self: *Self) void {
+    self.stackTop = 0;
+  }
+  
   pub fn interpret(self: *Self, chunk: *Chunk) InterpretResult {
     self.chunk = chunk;
     self.ip = 0;
     self.il = chunk.code.items.len;
     return self.run();
+  }
+  
+  // Stack operations
+  fn push(self: *Self, value: Value) void {
+    self.stack.append(value);
+  }
+  
+  fn pop(self: *Self) Value {
+    return self.stack.pop();
   }
   
   // returns the instruction at index
@@ -84,20 +103,24 @@ pub const MageVM = struct {
       instruction = self.read_byte();
       
       if (debug) {
+        print("          ", .{});
+        for (self.stack.items) |slot| {
+          print("[", .{});
+          printValue(slot);
+          print("]", .{});
+        }
+        print("\n", .{});
+
         _ = Op.disassemble(self.chunk, instruction, self.ip-1);
       }
       
       switch (instruction) {
         Op.constant => {
-          if (debug) {
-            _ = self.read_constant();
-            // const str = constant.to_str();
-            // print("{s}\n", .{str});
-          } else {
-            _ = self.read_constant();
-          }
+          self.push(self.read_constant());
         },
         Op.RETURN => {
+          printValue(self.pop());
+          print("\n", .{});
           response = InterpretResult.OK;
           break;
         },

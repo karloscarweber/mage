@@ -123,3 +123,8 @@ pub const Value = struct {
 };
 
 pub const Values = ArrayList(Value);
+
+pub fn printValue(value: *Value) void {
+  const str = value.*.to_str();
+  print("{s}", .{str});
+}
