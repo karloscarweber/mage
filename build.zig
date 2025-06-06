@@ -25,6 +25,13 @@ pub fn build(b: *std.Build) void {
     // location when the user invokes the "install" step (the default step when
     // running `zig build`).
     b.installArtifact(lib);
+    
+    // Debug build options
+    // This adds the option to have conditional execution of code based on the
+    // presence of the debug option:
+    // zig build -Ddebug=true
+    const build_options = b.addOptions();
+    build_options.addOption(bool, "debug", b.option(bool, "debug", "Builds in Debug Mode") orelse false);
 
     const exe = b.addExecutable(.{
         .name = "mage",
@@ -32,6 +39,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    exe.root_module.addOptions("build_options", build_options);
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
