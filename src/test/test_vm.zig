@@ -23,5 +23,4 @@ test "vm:init-deinit" {
   expect(7 == 10) catch {
     print("{s}7 == 10, is wrong\n", .{test_string});
   };
-  // print("Does this work?", .{});
 }

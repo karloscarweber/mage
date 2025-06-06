@@ -19,7 +19,12 @@ const Instruction = u8;
 pub const MageVM = struct {
   stack: []u8 = undefined,
   chunk: *Chunk = undefined,
-  ip: *[]Instruction = undefined, // instruction pointer, pointer to an u8 instruction that is about to be executed
+  // instruction pointer, pointer to an u8 instruction that is about to be executed
+  // in our case, we're just using a usize as an index to the a chunks:
+  // chunk.code.items, of u8 bytecode.
+  ip: usize = 0,
+  // instruction length is how many instructions are in this chunk.
+  il: usize = 0,
   mode: Mode = undefined,
   allocator: std.mem.Allocator,
   
@@ -51,39 +56,51 @@ pub const MageVM = struct {
   
   pub fn interpret(self: *Self, chunk: *Chunk) InterpretResult {
     self.chunk = chunk;
-    self.ip = &self.chunk.code.items;
+    self.ip = 0;
+    self.il = chunk.code.items.len;
     return self.run();
   }
   
-  inline fn read_constant(self: MageVM) Value {
-    return self.chunk.constants.values.items[read_byte(self)];
+  // returns the instruction at index
+  inline fn op(self: *Self, index: usize) u8 {
+    return self.chunk.*.code.items[index];
   }
   
-  inline fn read_byte(self: MageVM) u8 {
+  inline fn read_constant(self: *Self) Value {
+    return self.chunk.*.constants.items[self.read_byte()];
+  }
+  
+  inline fn read_byte(self: *Self) u8 {
     defer self.ip = self.ip + 1;
-    return self.ip;
+    return self.op(self.ip);
   }
   
   fn run(self: *Self) InterpretResult {
     var instruction: u8 = undefined;
-    while (true == true) {
-      instruction = read_byte(self.*).*;
+    var response = InterpretResult.OK;
+    
+    while (self.ip  < self.il) {
+      instruction = self.read_byte();
       
       switch (instruction) {
         Op.constant => {
-          const constant = read_constant(self);
-          print("{s}", constant.to_str());
-          print("\n", .{});
-          break;
+          var constant = self.read_constant();
+          const str = constant.to_str();
+          print("{s}\n", .{str});
         },
         Op.RETURN => {
-          return InterpretResult.OK;
-        }
+          response = InterpretResult.OK;
+          break;
+        },
+        else => {
+          response = InterpretResult.RUNTIME_ERROR;
+          break;
+        },
       }
       
     }
     
-    return InterpretResult.OK;
+    return response;
   }
   
 };

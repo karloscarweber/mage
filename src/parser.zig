@@ -12,6 +12,9 @@ const printer = @import("printer.zig");
 const puts = printer.puts;
 const EnumMap = std.builtin.Type.EnumMap;
 
+const mvm = @import("vm.zig");
+const MageVM = mvm.MageVM;
+
 // token, shorthand, re-declarations
 const BANG_EQUAL = Token.Type.bang_equal;
 const EQUAL_EQUAL = Token.Type.equal_equal;
@@ -232,7 +235,7 @@ pub const Parser = struct {
     
     // expressions, when resolved, put a value onto the stack
     fn expression(self: *Self) void {
-      self.parsePresedence(Precedence.NONE)
+      self.parsePresedence(Precedence.NONE);
     }
     
     // parse() represents not just the start of the parsing party,
