@@ -118,13 +118,20 @@ pub const Value = struct {
     }
     
     pub fn isTruthy(self: Self) bool {
-        return (!self.isFalsy());
+      return (!self.isFalsy());
     }
 };
 
 pub const Values = ArrayList(Value);
 
-pub fn printValue(value: *Value) void {
-  const str = value.*.to_str();
+pub fn printValue(value: Value) void {
+  var valley = value;
+  const str = valley.to_str();
   print("{s}", .{str});
+}
+
+// import tests.
+// will only be executed when we're doing tests.
+comptime {
+    _ = @import("test/test_value.zig");
 }

@@ -45,6 +45,12 @@ test "Bool Values can be created" {
     try expect(whatever.isFalsy());
 }
 
+test "number Values can be negated" {
+  var numValue = Value.new.NUMBER(15);
+  numValue.as.num = -numValue.as.num;
+  try expect(numValue.as.num == 15);
+}
+
 test "Values can be made from strings" {
     // make values with strings
     // 15

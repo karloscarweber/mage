@@ -74,10 +74,12 @@ pub const MageVM = struct {
   
   // Stack operations
   fn push(self: *Self, value: Value) void {
-    self.stack.append(value);
+    self.stack.append(value) catch {
+      print("Something went terrribly wrong.", .{});
+    };
   }
   
-  fn pop(self: *Self) Value {
+  fn pop(self: *Self) ?Value {
     return self.stack.pop();
   }
   
@@ -118,9 +120,14 @@ pub const MageVM = struct {
         Op.constant => {
           self.push(self.read_constant());
         },
+        Op.negate => {
+          // assuming this is a number value
+          var val = self.pop();
+          val.as.num = -val.as.num;
+          self.push(val.as.num);
+        },
         Op.RETURN => {
-          printValue(self.pop());
-          print("\n", .{});
+          _ = self.pop();
           response = InterpretResult.OK;
           break;
         },

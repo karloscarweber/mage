@@ -11,7 +11,8 @@ const Values = val.Values;
 pub const Op = struct {
   
   pub const constant: u8        = 0x00;
-  pub const name: u8            = 0x01;
+  pub const negate: u8            = 0x01;
+  // pub const name: u8            = 0x01;
   pub const TRUE: u8            = 0x02;
   pub const FALSE: u8           = 0x03;
   pub const pop: u8             = 0x04;
@@ -42,7 +43,8 @@ pub const Op = struct {
   
   pub const OPS = enum(u8) {
     constant,
-    name,
+    negate,
+    // name,
     TRUE,
     FALSE,
     pop,

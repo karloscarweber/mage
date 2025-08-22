@@ -100,4 +100,13 @@ pub fn build(b: *std.Build) void {
     const run_vm_unit_tests = b.addRunArtifact(vm_unit_tests);
     vm_test_step.dependOn(&run_lib_unit_tests.step);
     vm_test_step.dependOn(&run_vm_unit_tests.step);
+    
+    // individual unit tests
+    const value_test_step = b.step("test:value", "Tests the value.zig file through src/test/test_value.zig");
+    const value_unit_tests = b.addTest(.{
+        .root_source_file = b.path("src/value.zig"), .target = target, .optimize = optimize,
+    });
+    const run_value_unit_tests = b.addRunArtifact(value_unit_tests);
+    value_test_step.dependOn(&run_lib_unit_tests.step);
+    value_test_step.dependOn(&run_value_unit_tests.step);
 }
