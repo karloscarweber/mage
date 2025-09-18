@@ -24,22 +24,22 @@ const LESS = Token.Type.less;
 const LESS_EQUAL = Token.Type.less_equal;
 
 // opcodes
-pub const OPCode = enum(u8) {
-  ERR, // ERROR
-  NUM, // NUMBER
-  TRU, // TRUE
-  FAL, // FALSE
-  NAM, // NAME
-  ADD, // ADD
-  SUB, // SUBTRACT
-  MUL, // MULTILPLY
-  DIV, // DIVIDE
-  MOD, // MODULO
-  EOF, // END OF FILE
-  
+pub const OPCode = enum(u32) {
+  ERR = 0x00, // ERROR
+  NUM = 0x01, // NUMBER
+  TRU = 0x02, // TRUE
+  FAL = 0x03, // FALSE
+  NAM = 0x04, // NAME
+  ADD = 0x05, // ADD
+  SUB = 0x06, // SUBTRACT
+  MUL = 0x07, // MULTILPLY
+  DIV = 0x08, // DIVIDE
+  MOD = 0x09, // MODULO
+  EOF = 0x0a, // END OF FILE
+
   // const Self = @This();
-  
-  pub fn to_str(self: OPCode) []const u8 {
+
+  pub fn to_str(self: OPCode) []const u32 {
     return @tagName(self);
   }
 };
@@ -55,7 +55,7 @@ pub const OPCodes = ArrayList(OPCode);
 // interpret and optimize our dynamic opcode data as our program runs, and rewrite
 // those operations to be Harder, Better, Faster, Stronger.
 pub const Parser = struct {
-    vm: MageVM,
+    // vm: MageVM,
     scanner: Scanner,
     source: []const u8,
     current: usize = 0,
@@ -68,20 +68,24 @@ pub const Parser = struct {
     const Self = @This();
 
     pub fn init(allocator: Allocator, source: []const u8) !Parser {
+        const _opcodes = try OPCodes.initCapacity(allocator, 8);
+
         var scanner = try Scanner.init(allocator, source);
         try scanner.scan();
         return .{
+            // .vm = vm,
             .scanner = scanner,
             .source = source,
-            .bytecode = OPCodes.init(allocator),
+            .bytecode = _opcodes,
             .allocator = allocator,
         };
     }
-    
+
     pub fn deinit(self: *Self) void {
         self.scanner.deinit();
+        self.bytecode.deinit();
     }
-    
+
     // Helper function to get tokens.
     pub fn tokens(self: *Self) Tokens {
         return self.scanner.tokens;
@@ -90,7 +94,7 @@ pub const Parser = struct {
     pub fn isAtEnd(self: *Self) bool {
         return self.current == self.tokens().items.len;
     }
-    
+
     // returns the current token as a token.
     pub fn currentToken(self: *Self) Token {
       return self.tokenAt(self.current);
@@ -104,10 +108,10 @@ pub const Parser = struct {
         if (index < self.tokens().items.len) {
             return self.tokens().items[index];
         }
-        
+
         return self.tokens().getLast();
     }
-    
+
     pub fn advance(self: *Self) Token {
         defer self.current += 1;
         return self.tokenAt(self.previous);
@@ -124,21 +128,21 @@ pub const Parser = struct {
     pub fn peekNextNext(self: *Self) Token {
         return self.tokenAt(self.current + 2);
     }
-    
+
     /// Error functions
     pub fn errorr(self: *Self, message: []const u8) void {
       self.errorAt(self.tokenAt(self.previous), message);
     }
-    
+
     pub fn errorAtCurrent(self: *Self, message: []const u8) void {
       self.errorAt(self.currentToken(), message);
     }
-    
+
     pub fn errorAt(self:*Self, token: *Token, message: []const u8) !void {
       if (self.panicMode) { return; }
       self.panicMode = true;
       std.debug.print("[line {d}] Error", .{token.line});
-      
+
       switch (token.type) {
           TokenType.EOF => std.debug.print(" at end", .{}),
           TokenType.err => {},
@@ -147,41 +151,42 @@ pub const Parser = struct {
               std.debug.print(" at '%s'", .{token.literal});
           },
       }
-    
+
       std.debug.print(": %s\n", .{message});
     }
 
     /// Parsing functions
-    
+
     fn printError(self: *Self, label: []const u8, comptime format: []const u8, args: anytype) !void {
       const al = self.allocator;
       self.parser.hasError = true;
       if (!self.parser.printErrors) return;
-      
+
       const error_message = try std.fmt.allocPrint(al, format, args);
       defer al.free(error_message);
-      
+
       const mod_name = "Main";
-      
+
       const message = try std.fmt.allocPrint(al, "{s}-{s}:{s}", .{label, mod_name,error_message});
       defer al.free(message);
-      
+
       std.debug.print("\n{s}\n", .{message});
     }
-    
+
     // Output a lexical error. That's an error where what the programmer wrote,
     // is clearly wrong. How dare you.
     fn lexError(self: *Self, comptime format: []const u8, args: anytype) void {
-      
+
       // print error
       self.printError("Error", format, args) catch {
-        
+
       };
-      
+
     }
-    
+
     // Grammar
-    
+
+    // Precedence in order of lowest to highest
     const Precedence = enum {
         NONE,
         ASSIGNMENT,    // =
@@ -195,65 +200,81 @@ pub const Parser = struct {
         UNARY,         // unary - ! ~
         CALL,          // . () []
         PRIMARY,
-    
+
         pub fn to_str(self: Precedence) []const u8 {
             return @tagName(self);
         }
     };
-    
+
     // Shuffles the tokens along and stores it in
     // parser.next
     fn nextToken(self: *Self) void {
       // shuffles the tokens along.
       self.previous = self.curerent;
       self.current = self.next;
-      
+
       if (self.next.type == .EOF) { return; }
       if (self.current.type == .EOF) { return; }
-      
+
       while(self.peekToken() != Token.EOF) {
         self.tokenStart = self.currentToken;
-        
+
         // const c = self.nextChar
-        
+
       }
-      
-      
+
+
     }
-    
+
     //
     fn parsePresedence(precedence: Precedence) void {
       // next Token
-      var prefix: GrammarFn = rules[self.previous.type].prefix;
-      
+      // var prefix: GrammarFn = rules[self.previous.type].prefix;
+
       // if (prefix == undefined) {
       //   error("expected expression.");
       //   return
       // }
-      
+
+      if (precedence == Precedence.NONE) {
+        puts("none", .{});
+      } else {
+        puts("something", .{});
+      }
+
     }
-    
+
     // expressions, when resolved, put a value onto the stack
     fn expression(self: *Self) void {
       self.parsePresedence(Precedence.NONE);
     }
-    
+
+    // fn name(self: *Self, token: Token) void {
+//
+    // }
+
+    fn number(self: *Self, token: Token) void {
+      const lit = token.literal(&self.scanner.source);
+      const num = try std.fmt.parseFloat(lit);
+    }
+
     // parse() represents not just the start of the parsing party,
     // but also the entry to our recursive structures. We use the
     // base token types to enter unique functions that parse out
     // the more complex grammar.
     pub fn parse(self: *Self) !void {
-      
+
       while (!self.isAtEnd()) {
-        
+
         if (self.isAtEnd()) {
           break;
         }
-        
+
         const t = self.advance();
-    
+
         switch (t.type) {
-          .name => self.name(),
+          // .name => self.name(t),
+          .number => self.number(t),
           // ')' => self.push(.rightParen),
           // '{' => self.push(.leftBrace),
           // '}' => self.push(.rightBrace),
@@ -276,6 +297,9 @@ pub const Parser = struct {
           //         self.push(.not);
           //     }
           // },
+          else => {
+            puts("fuck");
+          }
         }
       }
     }
@@ -288,15 +312,15 @@ pub const Parser = struct {
     // consume
     // check
     // match
-    
-    
+
+
     // expression
     // statement
     // declaration
     // getRule
     // parsePrecedence
-    
-    
+
+
     // and_
     // binary
     // call
@@ -306,13 +330,12 @@ pub const Parser = struct {
     // number
     // or_
     // string
-    
-    
+
     // unary
     // parsePrecedence
     // getRule
     // -- // expression
-    
+
     // declaration
     // statement
 

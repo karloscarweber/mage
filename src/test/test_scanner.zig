@@ -1,6 +1,5 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const Allocator = std.mem.Allocator;
 const testing = std.testing;
 const allocator = testing.allocator;
 const expect = testing.expect;
@@ -22,6 +21,7 @@ test "Scanner functions" {
     try expect(scanner.advance() == 'l');
     try expect(scanner.peek() == 'l');
     try expect(!scanner.isAtEnd());
+    print("whatever", .{});
 }
 
 test "skips whitespace" {
@@ -35,7 +35,7 @@ test "skips whitespace" {
 fn debugScanner(scanner: *Scanner) void {
     for (scanner.tokens.items) |token| {
         const thing = token.to_str(&scanner.source) catch "shit";
-        std.debug.print("{s}\n", .{thing});
+        print("{s}\n", .{thing});
     }
 }
 
@@ -77,7 +77,7 @@ test "scanner scans more code" {
 
     const tokens = scanner.tokens.items;
     const tokenNumber = 48;
-    
+
     expect(tokens.len == tokenNumber) catch {
         debugScanner(&scanner);
         print("[ERROR]: Incorrect number of tokens. Found {d}, expected: {d}.\n", .{ scanner.tokens.items.len, tokenNumber });

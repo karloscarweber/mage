@@ -82,18 +82,23 @@ pub const Scanner = struct {
     line: usize = 1,
     tokens: Tokens,
     source: []const u8,
+    // store the allocator
+    allocator: Allocator,
 
     const Self = @This();
 
     pub fn init(allocator: Allocator, source: []const u8) !Scanner {
+        const _tokens = try Tokens.initCapacity(allocator, 8);
+
         return .{
             .source = source,
-            .tokens = Tokens.init(allocator),
+            .tokens = _tokens,
+            .allocator = allocator,
         };
     }
 
     pub fn deinit(self: *Self) void {
-        self.tokens.deinit();
+        self.tokens.deinit(self.allocator);
     }
 
     // checks to see if the pointer to the current
@@ -109,7 +114,7 @@ pub const Scanner = struct {
         }
         return self.lastChar();
     }
-    
+
     fn lastChar(self: *Self) u8 {
       return self.source[self.source.len - 1];
     }
@@ -134,7 +139,8 @@ pub const Scanner = struct {
 
     // pushes a token onto the stack.
     pub fn push(self: *Self, typ: Token.Type) void {
-        self.tokens.append(Token{
+        self.tokens.append(self.allocator,
+            Token{
             .type = typ,
             .start = self.start,
             .length = self.current - self.start,
@@ -152,7 +158,8 @@ pub const Scanner = struct {
     // advance the ticker thingy.
     //
     pub fn pushNewline(self: *Self) !void {
-        try self.tokens.append(Token{
+        try self.tokens.append(self.allocator,
+            Token{
             .type = Token.Type.newline,
             .start = self.current,
             .length = 1,
@@ -185,7 +192,7 @@ pub const Scanner = struct {
     }
 
     pub fn name(self: *Self) !void {
-        
+
         while (Char.isAlphabetic(self.peek()) or Char.isDigit(self.peek()) or '_' == self.peek()) {
             _ = self.advance();
             if (self.isAtEnd()) {
@@ -220,7 +227,7 @@ pub const Scanner = struct {
     }
 
     pub fn scan(self: *Self) !void {
-        
+
         while (!self.isAtEnd()) {
             try self.skipWhitespace();
             self.start = self.current;
