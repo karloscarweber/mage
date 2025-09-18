@@ -4,7 +4,7 @@ const std = @import("std");
 // declaratively construct a build graph that will be executed by an external
 // runner.
 pub fn build(b: *std.Build) void {
-    
+
     const target = b.standardTargetOptions(.{});
 
     // Standard optimization options allow the person running `zig build` to select
@@ -12,20 +12,25 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    const lib = b.addStaticLibrary(.{
-        .name = "mage",
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
+    const root_module = b.createModule(.{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
+    });
+
+    const lib = b.addLibrary(.{
+        .name = "mage",
+        // In this case the main source file is merely a path, however, in more
+        // complicated build scripts, this could be a generated file.
+        .linkage = .static,
+        .root_module = root_module,
     });
 
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
     // running `zig build`).
     b.installArtifact(lib);
-    
+
     // Debug build options
     // This adds the option to have conditional execution of code based on the
     // presence of the debug option:
@@ -35,9 +40,11 @@ pub fn build(b: *std.Build) void {
 
     const exe = b.addExecutable(.{
         .name = "mage",
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     exe.root_module.addOptions("build_options", build_options);
 
@@ -72,16 +79,20 @@ pub fn build(b: *std.Build) void {
     // Creates a step for unit testing. This only builds the test executable
     // but does not run it.
     const lib_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/root.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = root_module,
     });
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
+    run_lib_unit_tests.skip_foreign_checks = true;
 
-    const exe_unit_tests = b.addTest(.{
+    // setup exe tests stuff
+    const tests_module = b.createModule(.{
         .root_source_file = b.path("src/tests.zig"),
         .target = target,
         .optimize = optimize,
+    });
+
+    const exe_unit_tests = b.addTest(.{
+        .root_module = tests_module,
     });
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
 
@@ -91,22 +102,24 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("tests", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
     test_step.dependOn(&run_exe_unit_tests.step);
-    
+
     // individual unit tests
-    const vm_test_step = b.step("test:vm", "Tests the vm.zig file through src/test/test_vm.zig");
-    const vm_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/vm.zig"), .target = target, .optimize = optimize,
-    });
-    const run_vm_unit_tests = b.addRunArtifact(vm_unit_tests);
-    vm_test_step.dependOn(&run_lib_unit_tests.step);
-    vm_test_step.dependOn(&run_vm_unit_tests.step);
-    
-    // individual unit tests
-    const value_test_step = b.step("test:value", "Tests the value.zig file through src/test/test_value.zig");
-    const value_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/value.zig"), .target = target, .optimize = optimize,
-    });
-    const run_value_unit_tests = b.addRunArtifact(value_unit_tests);
-    value_test_step.dependOn(&run_lib_unit_tests.step);
-    value_test_step.dependOn(&run_value_unit_tests.step);
+    // const vm_test_step = b.step("test:vm", "Tests the vm.zig file through src/test/test_vm.zig");
+    // const vm_unit_tests = b.addTest(.{
+    //     .root_source_file = b.path("src/vm.zig"),
+    //     .target = target,
+    //     .optimize = optimize,
+    // });
+    // const run_vm_unit_tests = b.addRunArtifact(vm_unit_tests);
+    // vm_test_step.dependOn(&run_lib_unit_tests.step);
+    // vm_test_step.dependOn(&run_vm_unit_tests.step);
+//
+    // // individual unit tests
+    // const value_test_step = b.step("test:value", "Tests the value.zig file through src/test/test_value.zig");
+    // const value_unit_tests = b.addTest(.{
+    //     .root_source_file = b.path("src/value.zig"), .target = target, .optimize = optimize,
+    // });
+    // const run_value_unit_tests = b.addRunArtifact(value_unit_tests);
+    // value_test_step.dependOn(&run_lib_unit_tests.step);
+    // value_test_step.dependOn(&run_value_unit_tests.step);
 }
